@@ -6,6 +6,8 @@
  * com filtros por status, ponto de entrega, data e número do pedido.
  */
 import { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +34,8 @@ import {
   Activity,
   ArrowLeft,
   Home,
+  Eye,
+  Boxes,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -247,12 +251,68 @@ interface OrderCardProps {
     totalFormatted: string | null;
     totalItems: number | null;
     totalQuantity: number | null;
+    totalVolumes: number | null;
     timeline: TimelineEntry[];
   };
 }
 
+function OrderDetailsModal({ orderId, orderNumber, onClose }: { orderId: number; orderNumber: string; onClose: () => void }) {
+  const { data, isLoading } = trpc.intraHospital.getOrderDetails.useQuery({ orderId });
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-indigo-600" />
+            Detalhes do Pedido #{orderNumber}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading && <p className="text-sm text-slate-500 py-4 text-center">Carregando...</p>}
+        {data && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-3 text-sm">
+              <span className="bg-slate-100 rounded-lg px-3 py-1.5 font-medium">{data.totalItems} iten{data.totalItems !== 1 ? "s" : ""}</span>
+              <span className="bg-slate-100 rounded-lg px-3 py-1.5 font-medium">{data.totalQuantity} unidades</span>
+              {data.totalVolumes != null && (
+                <span className="bg-indigo-50 text-indigo-700 rounded-lg px-3 py-1.5 font-medium flex items-center gap-1">
+                  <Boxes className="h-4 w-4" />{data.totalVolumes} volume{data.totalVolumes !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Lote</TableHead>
+                  <TableHead>Validade</TableHead>
+                  <TableHead className="text-right">Qtd Pedida</TableHead>
+                  <TableHead className="text-right">Qtd Separada</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.items.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono text-xs">{item.productSku ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{item.productName ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{item.batch ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{item.expiryDate ?? "—"}</TableCell>
+                    <TableCell className="text-right text-sm">{item.requestedQuantity} {item.requestedUM === "box" ? "cx" : "un"}</TableCell>
+                    <TableCell className="text-right text-sm">{item.pickedQuantity} {item.requestedUM === "box" ? "cx" : "un"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OrderCard({ order }: OrderCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const cfg = STATUS_CONFIG[order.lastDeliveryStatus as DeliveryStatus];
 
   return (
@@ -294,24 +354,42 @@ function OrderCard({ order }: OrderCardProps) {
                 {order.lastPointName}
               </span>
             )}
-            {order.totalItems != null && order.totalItems > 0 && (
+            {order.totalVolumes != null ? (
+              <span className="flex items-center gap-1 font-semibold text-indigo-600">
+                <Boxes className="h-3 w-3" />
+                {order.totalVolumes} volume{order.totalVolumes !== 1 ? "s" : ""}
+              </span>
+            ) : order.totalItems != null && order.totalItems > 0 ? (
               <span className="flex items-center gap-1 font-semibold text-indigo-600">
                 <Package className="h-3 w-3" />
                 {order.totalItems} iten{order.totalItems !== 1 ? "s" : ""}
-                {order.totalQuantity != null && order.totalQuantity > 0
-                  ? ` · ${order.totalQuantity} un.`
-                  : ""}
               </span>
-            )}
+            ) : null}
           </div>
           <StatusBadge status={order.lastDeliveryStatus} />
           <OrderProgressBar lastStatus={order.lastDeliveryStatus} isComplete={order.isComplete} />
         </div>
-        <button className="ml-3 mt-0.5 text-slate-400 hover:text-slate-600 flex-shrink-0">
-          {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1 ml-3 mt-0.5 flex-shrink-0">
+          <button
+            onClick={e => { e.stopPropagation(); setShowDetails(true); }}
+            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+            title="Ver detalhes"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button className="text-slate-400 hover:text-slate-600">
+            {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
+      {showDetails && (
+        <OrderDetailsModal
+          orderId={order.orderId}
+          orderNumber={order.customerOrderNumber}
+          onClose={() => setShowDetails(false)}
+        />
+      )}
       {/* Timeline expandida */}
       {expanded && (
         <>

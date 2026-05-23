@@ -18,6 +18,9 @@ import {
   deliveryPoints,
   deliveryLogs,
   pickingOrders,
+  pickingOrderItems,
+  stageChecks,
+  products,
   users,
 } from "../drizzle/schema";
 
@@ -873,6 +876,22 @@ export const intraHospitalRouter = router({
         .from(pickingOrders)
         .where(inArray(pickingOrders.id, filteredOrderIds));
 
+      // 4b. Buscar totalVolumes do Stage por pedido
+      const stageVolumesRows = await db
+        .select({ pickingOrderId: stageChecks.pickingOrderId, totalVolumes: stageChecks.totalVolumes })
+        .from(stageChecks)
+        .where(and(
+          inArray(stageChecks.pickingOrderId, filteredOrderIds),
+          sql`${stageChecks.totalVolumes} IS NOT NULL`
+        ))
+        .orderBy(desc(stageChecks.id));
+      const stageVolumesMap = new Map<number, number>();
+      for (const sv of stageVolumesRows) {
+        if (!stageVolumesMap.has(sv.pickingOrderId) && sv.totalVolumes != null) {
+          stageVolumesMap.set(sv.pickingOrderId, sv.totalVolumes);
+        }
+      }
+
       const orderMap = new Map(orders.map(o => [o.id, o]));
 
       // 5. Aplicar filtro de busca por número do pedido
@@ -894,6 +913,7 @@ export const intraHospitalRouter = router({
         totalFormatted: string | null;
         totalItems: number | null;
         totalQuantity: number | null;
+        totalVolumes: number | null;
         timeline: Array<{
           id: number;
           status: string;
@@ -971,6 +991,7 @@ export const intraHospitalRouter = router({
           checkpointCount: logs.length,
           totalItems: order.totalItems ?? null,
           totalQuantity: order.totalQuantity ?? null,
+          totalVolumes: stageVolumesMap.get(order.id) ?? null,
           totalMinutes,
           totalFormatted: totalMinutes !== null
             ? totalMinutes >= 60
@@ -982,5 +1003,64 @@ export const intraHospitalRouter = router({
       }
 
       return result;
+    }),
+
+  /**
+   * Retorna detalhes de um pedido (itens, SKUs, quantidades, volumes) para o modal de detalhes.
+   */
+  getOrderDetails: tenantProcedure
+    .input(z.object({
+      tenantId: z.number().optional(),
+      orderId: z.number(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const [order] = await db
+        .select({
+          id: pickingOrders.id,
+          tenantId: pickingOrders.tenantId,
+          customerOrderNumber: pickingOrders.customerOrderNumber,
+          customerName: pickingOrders.customerName,
+          status: pickingOrders.status,
+          totalItems: pickingOrders.totalItems,
+          totalQuantity: pickingOrders.totalQuantity,
+        })
+        .from(pickingOrders)
+        .where(eq(pickingOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Pedido não encontrado." });
+      assertSameTenant(order.tenantId, ctx.effectiveTenantId, ctx.isGlobalAdmin, "pedido");
+
+      const items = await db
+        .select({
+          id: pickingOrderItems.id,
+          productName: products.description,
+          productSku: products.sku,
+          requestedQuantity: pickingOrderItems.requestedQuantity,
+          requestedUM: pickingOrderItems.requestedUM,
+          pickedQuantity: pickingOrderItems.pickedQuantity,
+          unitsPerBox: pickingOrderItems.unitsPerBox,
+          batch: pickingOrderItems.batch,
+          expiryDate: pickingOrderItems.expiryDate,
+          status: pickingOrderItems.status,
+        })
+        .from(pickingOrderItems)
+        .leftJoin(products, eq(pickingOrderItems.productId, products.id))
+        .where(eq(pickingOrderItems.pickingOrderId, order.id));
+
+      const [stageRow] = await db
+        .select({ totalVolumes: stageChecks.totalVolumes })
+        .from(stageChecks)
+        .where(and(
+          eq(stageChecks.pickingOrderId, order.id),
+          sql`${stageChecks.totalVolumes} IS NOT NULL`
+        ))
+        .orderBy(desc(stageChecks.id))
+        .limit(1);
+
+      return { ...order, items, totalVolumes: stageRow?.totalVolumes ?? null };
     }),
 });
