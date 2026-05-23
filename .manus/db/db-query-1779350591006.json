@@ -1,0 +1,31 @@
+{
+  "query": "\nSELECT id, inventoryId, locationId, locationCode, status \nFROM inventoryLocations \nWHERE inventoryId = 120001 \nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, inventoryId, locationId, locationCode, status \nFROM inventoryLocations \nWHERE inventoryId = 120001 \nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "120001",
+      "inventoryId": "120001",
+      "locationId": "390001",
+      "locationCode": "M03-01-01",
+      "status": "pending"
+    },
+    {
+      "id": "120002",
+      "inventoryId": "120001",
+      "locationId": "390002",
+      "locationCode": "M03-01-02",
+      "status": "pending"
+    },
+    {
+      "id": "120003",
+      "inventoryId": "120001",
+      "locationId": "390003",
+      "locationCode": "M03-01-03",
+      "status": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tinventoryId\tlocationId\tlocationCode\tstatus\n120001\t120001\t390001\tM03-01-01\tpending\n120002\t120001\t390002\tM03-01-02\tpending\n120003\t120001\t390003\tM03-01-03\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 260
+}

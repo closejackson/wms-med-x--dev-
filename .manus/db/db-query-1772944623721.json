@@ -1,0 +1,26 @@
+{
+  "query": "\n-- 1. Verificar endereços REC do tenant 30001\nSELECT wl.id, wl.code, wl.tenantId, wl.status, wz.code as zoneCode\nFROM warehouseLocations wl\nJOIN warehouseZones wz ON wl.zoneId = wz.id\nWHERE wl.tenantId = 30001 AND wz.code = 'REC'\nLIMIT 10;\n\n-- 2. Verificar inventory no endereço REC do tenant 30001\nSELECT i.id, i.productId, i.locationId, i.tenantId, i.quantity, i.status, i.batch, i.uniqueCode, i.locationZone,\n       p.sku, p.description\nFROM inventory i\nJOIN products p ON i.productId = p.id\nJOIN warehouseLocations wl ON i.locationId = wl.id\nJOIN warehouseZones wz ON wl.zoneId = wz.id\nWHERE wl.tenantId = 30001 AND wz.code = 'REC'\nORDER BY i.id DESC\nLIMIT 20;\n\n-- 3. Verificar todos os inventory do tenant 30001 com quantity > 0\nSELECT i.id, i.productId, i.locationId, i.tenantId, i.quantity, i.status, i.batch, i.uniqueCode, i.locationZone,\n       p.sku, wl.code as locationCode\nFROM inventory i\nJOIN products p ON i.productId = p.id\nJOIN warehouseLocations wl ON i.locationId = wl.id\nWHERE i.tenantId = 30001 AND i.quantity > 0\nORDER BY i.id DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- 1. Verificar endereços REC do tenant 30001\nSELECT wl.id, wl.code, wl.tenantId, wl.status, wz.code as zoneCode\nFROM warehouseLocations wl\nJOIN warehouseZones wz ON wl.zoneId = wz.id\nWHERE wl.tenantId = 30001 AND wz.code = 'REC'\nLIMIT 10;\n\n-- 2. Verificar inventory no endereço REC do tenant 30001\nSELECT i.id, i.productId, i.locationId, i.tenantId, i.quantity, i.status, i.batch, i.uniqueCode, i.locationZone,\n       p.sku, p.description\nFROM inventory i\nJOIN products p ON i.productId = p.id\nJOIN warehouseLocations wl ON i.locationId = wl.id\nJOIN warehouseZones wz ON wl.zoneId = wz.id\nWHERE wl.tenantId = 30001 AND wz.code = 'REC'\nORDER BY i.id DESC\nLIMIT 20;\n\n-- 3. Verificar todos os inventory do tenant 30001 com quantity > 0\nSELECT i.id, i.productId, i.locationId, i.tenantId, i.quantity, i.status, i.batch, i.uniqueCode, i.locationZone,\n       p.sku, wl.code as locationCode\nFROM inventory i\nJOIN products p ON i.productId = p.id\nJOIN warehouseLocations wl ON i.locationId = wl.id\nWHERE i.tenantId = 30001 AND i.quantity > 0\nORDER BY i.id DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "30353",
+      "code": "REC-01-A",
+      "tenantId": "30001",
+      "status": "occupied",
+      "zoneCode": "REC"
+    }
+  ],
+  "messages": [
+    "id\tproductId\tlocationId\ttenantId\tquantity\tstatus\tbatch\tuniqueCode\tlocationZone\tsku\tdescription",
+    "510003\t180008\t30353\t30001\t12\tavailable\t\t30227945-null\tREC\t30227945\tPAPEL HIG SCOTT ROLO",
+    "510002\t210002\t30353\t30001\t6\tavailable\t\t30223456-null\tREC\t30223456\tTOALHA SCOTT BASIC ROLO",
+    "510001\t210001\t30353\t30001\t90\tavailable\t\t107540-null\tREC\t107540\tRIOHEX CLOREXIDINA 2% 100ML",
+    "id\tproductId\tlocationId\ttenantId\tquantity\tstatus\tbatch\tuniqueCode\tlocationZone\tsku\tlocationCode",
+    "510003\t180008\t30353\t30001\t12\tavailable\t\t30227945-null\tREC\t30227945\tREC-01-A",
+    "510002\t210002\t30353\t30001\t6\tavailable\t\t30223456-null\tREC\t30223456\tREC-01-A",
+    "510001\t210001\t30353\t30001\t90\tavailable\t\t107540-null\tREC\t107540\tREC-01-A"
+  ],
+  "stdout": "id\tcode\ttenantId\tstatus\tzoneCode\n30353\tREC-01-A\t30001\toccupied\tREC\nid\tproductId\tlocationId\ttenantId\tquantity\tstatus\tbatch\tuniqueCode\tlocationZone\tsku\tdescription\n510003\t180008\t30353\t30001\t12\tavailable\t\t30227945-null\tREC\t30227945\tPAPEL HIG SCOTT ROLO\n510002\t210002\t30353\t30001\t6\tavailable\t\t30223456-null\tREC\t30223456\tTOALHA SCOTT BASIC ROLO\n510001\t210001\t30353\t30001\t90\tavailable\t\t107540-null\tREC\t107540\tRIOHEX CLOREXIDINA 2% 100ML\nid\tproductId\tlocationId\ttenantId\tquantity\tstatus\tbatch\tuniqueCode\tlocationZone\tsku\tlocationCode\n510003\t180008\t30353\t30001\t12\tavailable\t\t30227945-null\tREC\t30227945\tREC-01-A\n510002\t210002\t30353\t30001\t6\tavailable\t\t30223456-null\tREC\t30223456\tREC-01-A\n510001\t210001\t30353\t30001\t90\tavailable\t\t107540-null\tREC\t107540\tREC-01-A\n",
+  "stderr": "",
+  "execution_time_ms": 127
+}

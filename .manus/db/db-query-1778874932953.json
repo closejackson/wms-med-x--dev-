@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, openId, name, role FROM users WHERE role = 'admin' OR name LIKE '%André%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, openId, name, role FROM users WHERE role = 'admin' OR name LIKE '%André%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "gzzadWLib9Rhe2m5MabHLf",
+      "name": "André Santos",
+      "role": "admin"
+    },
+    {
+      "id": "450001",
+      "openId": "Lxh2aZALxbC6uxjbGoRvZh",
+      "name": "Operação Medax",
+      "role": "admin"
+    },
+    {
+      "id": "450093",
+      "openId": "bTLhBV9vwNZrnZE2RqZdiq",
+      "name": "Conferência Conferência",
+      "role": "admin"
+    },
+    {
+      "id": "4110002",
+      "openId": "TgursVhKUw8Gm2sL5AT9jG",
+      "name": "André",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\trole\n1\tgzzadWLib9Rhe2m5MabHLf\tAndré Santos\tadmin\n450001\tLxh2aZALxbC6uxjbGoRvZh\tOperação Medax\tadmin\n450093\tbTLhBV9vwNZrnZE2RqZdiq\tConferência Conferência\tadmin\n4110002\tTgursVhKUw8Gm2sL5AT9jG\tAndré\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 295
+}

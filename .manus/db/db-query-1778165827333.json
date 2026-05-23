@@ -1,0 +1,42 @@
+{
+  "query": "\nSELECT id, orderNumber, customerName FROM pickingOrders WHERE tenantId = 120001 ORDER BY id;\nSELECT id, name, type, externalCode FROM deliveryPoints WHERE tenantId = 120001 ORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, orderNumber, customerName FROM pickingOrders WHERE tenantId = 120001 ORDER BY id;\nSELECT id, name, type, externalCode FROM deliveryPoints WHERE tenantId = 120001 ORDER BY id;\n",
+  "rows": [
+    {
+      "id": "990001",
+      "orderNumber": "PED-SCM-001",
+      "customerName": "Farmácia Central de Anestesia"
+    },
+    {
+      "id": "990002",
+      "orderNumber": "PED-SCM-002",
+      "customerName": "Farmácia UTI"
+    },
+    {
+      "id": "990003",
+      "orderNumber": "PED-SCM-003",
+      "customerName": "Farmácia Oncologia"
+    },
+    {
+      "id": "990004",
+      "orderNumber": "PED-SCM-004",
+      "customerName": "CAF Medicamentos e Materiais"
+    },
+    {
+      "id": "990005",
+      "orderNumber": "PED-SCM-005",
+      "customerName": "Farmácia Central de Anestesia"
+    }
+  ],
+  "messages": [
+    "id\tname\ttype\texternalCode",
+    "30001\tCAF Medicamentos e Materiais\tPHARMACY\tCAF MAT MED",
+    "90001\tDoca de Recebimento Central\tDOCK\tDOCA-CENTRAL",
+    "90002\tFarmácia Central de Anestesia\tPHARMACY\tFAR-ANEST",
+    "90003\tFarmácia UTI\tPHARMACY\tFAR-UTI",
+    "90004\tFarmácia Oncologia\tPHARMACY\tFAR-ONCO"
+  ],
+  "stdout": "id\torderNumber\tcustomerName\n990001\tPED-SCM-001\tFarmácia Central de Anestesia\n990002\tPED-SCM-002\tFarmácia UTI\n990003\tPED-SCM-003\tFarmácia Oncologia\n990004\tPED-SCM-004\tCAF Medicamentos e Materiais\n990005\tPED-SCM-005\tFarmácia Central de Anestesia\nid\tname\ttype\texternalCode\n30001\tCAF Medicamentos e Materiais\tPHARMACY\tCAF MAT MED\n90001\tDoca de Recebimento Central\tDOCK\tDOCA-CENTRAL\n90002\tFarmácia Central de Anestesia\tPHARMACY\tFAR-ANEST\n90003\tFarmácia UTI\tPHARMACY\tFAR-UTI\n90004\tFarmácia Oncologia\tPHARMACY\tFAR-ONCO\n",
+  "stderr": "",
+  "execution_time_ms": 67
+}

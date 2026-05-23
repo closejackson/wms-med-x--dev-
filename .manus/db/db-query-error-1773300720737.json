@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT la.id, la.labelCode, la.productId, la.batch, la.expiryDate,\n       p.sku AS productSku, p.name AS productName\nFROM labelAssociations la\nLEFT JOIN products p ON la.productId = p.id\nWHERE la.labelCode = '0633930225'\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT la.id, la.labelCode, la.productId, la.batch, la.expiryDate,\n       p.sku AS productSku, p.name AS productName\nFROM labelAssociations la\nLEFT JOIN products p ON la.productId = p.id\nWHERE la.labelCode = '0633930225'\nLIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'p.name' in 'field list'"
+  ]
+}

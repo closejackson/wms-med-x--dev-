@@ -1,0 +1,140 @@
+{
+  "query": "SELECT id, waveId, productId, productSku, locationCode, batch, totalQuantity, status FROM pickingWaveItems WHERE waveId = 300001 ORDER BY id LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, waveId, productId, productSku, locationCode, batch, totalQuantity, status FROM pickingWaveItems WHERE waveId = 300001 ORDER BY id LIMIT 30;",
+  "rows": [
+    {
+      "id": "300001",
+      "waveId": "300001",
+      "productId": "30010",
+      "productSku": "79119",
+      "locationCode": "M03-04-35",
+      "batch": "28592109",
+      "totalQuantity": "448",
+      "status": "pending"
+    },
+    {
+      "id": "300002",
+      "waveId": "300001",
+      "productId": "30010",
+      "productSku": "79119",
+      "locationCode": "M03-04-33",
+      "batch": "28592109",
+      "totalQuantity": "832",
+      "status": "pending"
+    },
+    {
+      "id": "300003",
+      "waveId": "300001",
+      "productId": "30017",
+      "productSku": "19591",
+      "locationCode": "M03-02-55",
+      "batch": "352262549L",
+      "totalQuantity": "60",
+      "status": "picked"
+    },
+    {
+      "id": "300004",
+      "waveId": "300001",
+      "productId": "30019",
+      "productSku": "55590",
+      "locationCode": "M03-04-23",
+      "batch": "165067",
+      "totalQuantity": "22",
+      "status": "pending"
+    },
+    {
+      "id": "300005",
+      "waveId": "300001",
+      "productId": "30019",
+      "productSku": "55590",
+      "locationCode": "M03-04-23",
+      "batch": "1551696",
+      "totalQuantity": "50",
+      "status": "pending"
+    },
+    {
+      "id": "300006",
+      "waveId": "300001",
+      "productId": "30021",
+      "productSku": "90675",
+      "locationCode": "M03-01-53",
+      "batch": "1513437",
+      "totalQuantity": "72",
+      "status": "pending"
+    },
+    {
+      "id": "300007",
+      "waveId": "300001",
+      "productId": "30025",
+      "productSku": "19593",
+      "locationCode": "M03-02-29",
+      "batch": "097262543J",
+      "totalQuantity": "40",
+      "status": "pending"
+    },
+    {
+      "id": "300008",
+      "waveId": "300001",
+      "productId": "30028",
+      "productSku": "42874",
+      "locationCode": "M03-02-45",
+      "batch": "077382546K",
+      "totalQuantity": "144",
+      "status": "pending"
+    },
+    {
+      "id": "300009",
+      "waveId": "300001",
+      "productId": "30029",
+      "productSku": "147992",
+      "locationCode": "M03-02-55",
+      "batch": "113302548K",
+      "totalQuantity": "84",
+      "status": "picked"
+    },
+    {
+      "id": "300010",
+      "waveId": "300001",
+      "productId": "30030",
+      "productSku": "19588",
+      "locationCode": "M03-02-55",
+      "batch": "080262548K",
+      "totalQuantity": "100",
+      "status": "picked"
+    },
+    {
+      "id": "300011",
+      "waveId": "300001",
+      "productId": "30031",
+      "productSku": "40133",
+      "locationCode": "M03-01-05",
+      "batch": "76355",
+      "totalQuantity": "12",
+      "status": "picked"
+    },
+    {
+      "id": "300012",
+      "waveId": "300001",
+      "productId": "30043",
+      "productSku": "95972",
+      "locationCode": "M03-01-13",
+      "batch": "5017114",
+      "totalQuantity": "2400",
+      "status": "picked"
+    },
+    {
+      "id": "300013",
+      "waveId": "300001",
+      "productId": "240001",
+      "productSku": "59188",
+      "locationCode": "M03-01-39",
+      "batch": "0633930225",
+      "totalQuantity": "10",
+      "status": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\twaveId\tproductId\tproductSku\tlocationCode\tbatch\ttotalQuantity\tstatus\n300001\t300001\t30010\t79119\tM03-04-35\t28592109\t448\tpending\n300002\t300001\t30010\t79119\tM03-04-33\t28592109\t832\tpending\n300003\t300001\t30017\t19591\tM03-02-55\t352262549L\t60\tpicked\n300004\t300001\t30019\t55590\tM03-04-23\t165067\t22\tpending\n300005\t300001\t30019\t55590\tM03-04-23\t1551696\t50\tpending\n300006\t300001\t30021\t90675\tM03-01-53\t1513437\t72\tpending\n300007\t300001\t30025\t19593\tM03-02-29\t097262543J\t40\tpending\n300008\t300001\t30028\t42874\tM03-02-45\t077382546K\t144\tpending\n300009\t300001\t30029\t147992\tM03-02-55\t113302548K\t84\tpicked\n300010\t300001\t30030\t19588\tM03-02-55\t080262548K\t100\tpicked\n300011\t300001\t30031\t40133\tM03-01-05\t76355\t12\tpicked\n300012\t300001\t30043\t95972\tM03-01-13\t5017114\t2400\tpicked\n300013\t300001\t240001\t59188\tM03-01-39\t0633930225\t10\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 184
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `systemUsers` ADD `mustResetPassword` boolean DEFAULT false NOT NULL;

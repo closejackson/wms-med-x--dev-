@@ -1,0 +1,163 @@
+{
+  "query": "\n-- Verificar receivingOrderItems para a OR 300001\nSELECT id, receivingOrderId, productId, batch, tenantId, expectedQuantity, status\nFROM receivingOrderItems\nWHERE receivingOrderId = 300001\nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Verificar receivingOrderItems para a OR 300001\nSELECT id, receivingOrderId, productId, batch, tenantId, expectedQuantity, status\nFROM receivingOrderItems\nWHERE receivingOrderId = 300001\nORDER BY id;\n",
+  "rows": [
+    {
+      "id": "300001",
+      "receivingOrderId": "300001",
+      "productId": "30007",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "2400",
+      "status": "receiving"
+    },
+    {
+      "id": "300002",
+      "receivingOrderId": "300001",
+      "productId": "180001",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "25",
+      "status": "receiving"
+    },
+    {
+      "id": "300003",
+      "receivingOrderId": "300001",
+      "productId": "30008",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "2400",
+      "status": "receiving"
+    },
+    {
+      "id": "300004",
+      "receivingOrderId": "300001",
+      "productId": "150004",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "2520",
+      "status": "pending"
+    },
+    {
+      "id": "300005",
+      "receivingOrderId": "300001",
+      "productId": "180002",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "1000",
+      "status": "pending"
+    },
+    {
+      "id": "300006",
+      "receivingOrderId": "300001",
+      "productId": "180003",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "300",
+      "status": "pending"
+    },
+    {
+      "id": "300007",
+      "receivingOrderId": "300001",
+      "productId": "150005",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "160",
+      "status": "pending"
+    },
+    {
+      "id": "300008",
+      "receivingOrderId": "300001",
+      "productId": "180004",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "20",
+      "status": "pending"
+    },
+    {
+      "id": "300009",
+      "receivingOrderId": "300001",
+      "productId": "180005",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "6",
+      "status": "pending"
+    },
+    {
+      "id": "300010",
+      "receivingOrderId": "300001",
+      "productId": "180006",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "150",
+      "status": "pending"
+    },
+    {
+      "id": "300011",
+      "receivingOrderId": "300001",
+      "productId": "180007",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "140",
+      "status": "pending"
+    },
+    {
+      "id": "300012",
+      "receivingOrderId": "300001",
+      "productId": "180008",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "8",
+      "status": "pending"
+    },
+    {
+      "id": "300013",
+      "receivingOrderId": "300001",
+      "productId": "150008",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "700",
+      "status": "pending"
+    },
+    {
+      "id": "300014",
+      "receivingOrderId": "300001",
+      "productId": "30009",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "100",
+      "status": "pending"
+    },
+    {
+      "id": "300015",
+      "receivingOrderId": "300001",
+      "productId": "150009",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "70",
+      "status": "pending"
+    },
+    {
+      "id": "300016",
+      "receivingOrderId": "300001",
+      "productId": "180009",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "4800",
+      "status": "pending"
+    },
+    {
+      "id": "300017",
+      "receivingOrderId": "300001",
+      "productId": "180010",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "4800",
+      "status": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\treceivingOrderId\tproductId\tbatch\ttenantId\texpectedQuantity\tstatus\n300001\t300001\t30007\tNULL\t30001\t2400\treceiving\n300002\t300001\t180001\tNULL\t30001\t25\treceiving\n300003\t300001\t30008\tNULL\t30001\t2400\treceiving\n300004\t300001\t150004\tNULL\t30001\t2520\tpending\n300005\t300001\t180002\tNULL\t30001\t1000\tpending\n300006\t300001\t180003\tNULL\t30001\t300\tpending\n300007\t300001\t150005\tNULL\t30001\t160\tpending\n300008\t300001\t180004\tNULL\t30001\t20\tpending\n300009\t300001\t180005\tNULL\t30001\t6\tpending\n300010\t300001\t180006\tNULL\t30001\t150\tpending\n300011\t300001\t180007\tNULL\t30001\t140\tpending\n300012\t300001\t180008\tNULL\t30001\t8\tpending\n300013\t300001\t150008\tNULL\t30001\t700\tpending\n300014\t300001\t30009\tNULL\t30001\t100\tpending\n300015\t300001\t150009\tNULL\t30001\t70\tpending\n300016\t300001\t180009\tNULL\t30001\t4800\tpending\n300017\t300001\t180010\tNULL\t30001\t4800\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

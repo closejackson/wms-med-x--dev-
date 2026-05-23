@@ -1,0 +1,220 @@
+{
+  "query": "\nSELECT \n  wl.id,\n  wl.code,\n  wl.status,\n  COALESCE(SUM(i.quantity), 0) as total_stock,\n  COUNT(i.id) as inventory_rows\nFROM warehouseLocations wl\nLEFT JOIN inventory i ON i.locationId = wl.id AND i.quantity > 0\nWHERE wl.status = 'occupied'\nGROUP BY wl.id, wl.code, wl.status\nHAVING total_stock = 0\nORDER BY wl.code\nLIMIT 30;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  wl.id,\n  wl.code,\n  wl.status,\n  COALESCE(SUM(i.quantity), 0) as total_stock,\n  COUNT(i.id) as inventory_rows\nFROM warehouseLocations wl\nLEFT JOIN inventory i ON i.locationId = wl.id AND i.quantity > 0\nWHERE wl.status = 'occupied'\nGROUP BY wl.id, wl.code, wl.status\nHAVING total_stock = 0\nORDER BY wl.code\nLIMIT 30;\n",
+  "rows": [
+    {
+      "id": "30001",
+      "code": "A04-02-02",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30002",
+      "code": "A04-02-04",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "60795",
+      "code": "M03-01-03.CG",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30079",
+      "code": "M03-01-07",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "60801",
+      "code": "M03-01-09.CG",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30083",
+      "code": "M03-01-11",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30087",
+      "code": "M03-01-15",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30089",
+      "code": "M03-01-17",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30091",
+      "code": "M03-01-19",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30093",
+      "code": "M03-01-21",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30095",
+      "code": "M03-01-23",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30097",
+      "code": "M03-01-25",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30101",
+      "code": "M03-01-29",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30103",
+      "code": "M03-01-31",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30105",
+      "code": "M03-01-33",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30107",
+      "code": "M03-01-35",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30109",
+      "code": "M03-01-37",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30113",
+      "code": "M03-01-41",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30115",
+      "code": "M03-01-43",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30117",
+      "code": "M03-01-45",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30119",
+      "code": "M03-01-47",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30121",
+      "code": "M03-01-49",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30123",
+      "code": "M03-01-51",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30125",
+      "code": "M03-01-53",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "60847",
+      "code": "M03-01-55.CG",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30129",
+      "code": "M03-02-01",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30131",
+      "code": "M03-02-03",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "60853",
+      "code": "M03-02-05.CG",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "30137",
+      "code": "M03-02-09",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    },
+    {
+      "id": "60863",
+      "code": "M03-02-15.CG",
+      "status": "occupied",
+      "total_stock": "0",
+      "inventory_rows": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\tstatus\ttotal_stock\tinventory_rows\n30001\tA04-02-02\toccupied\t0\t0\n30002\tA04-02-04\toccupied\t0\t0\n60795\tM03-01-03.CG\toccupied\t0\t0\n30079\tM03-01-07\toccupied\t0\t0\n60801\tM03-01-09.CG\toccupied\t0\t0\n30083\tM03-01-11\toccupied\t0\t0\n30087\tM03-01-15\toccupied\t0\t0\n30089\tM03-01-17\toccupied\t0\t0\n30091\tM03-01-19\toccupied\t0\t0\n30093\tM03-01-21\toccupied\t0\t0\n30095\tM03-01-23\toccupied\t0\t0\n30097\tM03-01-25\toccupied\t0\t0\n30101\tM03-01-29\toccupied\t0\t0\n30103\tM03-01-31\toccupied\t0\t0\n30105\tM03-01-33\toccupied\t0\t0\n30107\tM03-01-35\toccupied\t0\t0\n30109\tM03-01-37\toccupied\t0\t0\n30113\tM03-01-41\toccupied\t0\t0\n30115\tM03-01-43\toccupied\t0\t0\n30117\tM03-01-45\toccupied\t0\t0\n30119\tM03-01-47\toccupied\t0\t0\n30121\tM03-01-49\toccupied\t0\t0\n30123\tM03-01-51\toccupied\t0\t0\n30125\tM03-01-53\toccupied\t0\t0\n60847\tM03-01-55.CG\toccupied\t0\t0\n30129\tM03-02-01\toccupied\t0\t0\n30131\tM03-02-03\toccupied\t0\t0\n60853\tM03-02-05.CG\toccupied\t0\t0\n30137\tM03-02-09\toccupied\t0\t0\n60863\tM03-02-15.CG\toccupied\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 66
+}

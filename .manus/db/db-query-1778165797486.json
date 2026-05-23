@@ -1,0 +1,70 @@
+{
+  "query": "\nSELECT id, fullName, login FROM systemUsers WHERE tenantId = 120001 LIMIT 5;\nSELECT id, sku, description FROM products WHERE tenantId = 120001 LIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, fullName, login FROM systemUsers WHERE tenantId = 120001 LIMIT 5;\nSELECT id, sku, description FROM products WHERE tenantId = 120001 LIMIT 10;\n",
+  "rows": [
+    {
+      "id": "30001",
+      "fullName": "André Schwartz dos Santos",
+      "login": "decossantos2"
+    },
+    {
+      "id": "id",
+      "fullName": "sku",
+      "login": "description"
+    },
+    {
+      "id": "930001",
+      "fullName": "164293",
+      "login": "ARM DRAPE ESTERIL P/SISTEMA ROBOTICO DA"
+    },
+    {
+      "id": "930002",
+      "fullName": "164447",
+      "login": "CAL SODADA (ABSORVEDOR DE CO²) 5L"
+    },
+    {
+      "id": "930003",
+      "fullName": "164969",
+      "login": "AGULHA DESC. PONTA ROMBA 18GX1 1,20X25MM"
+    },
+    {
+      "id": "930004",
+      "fullName": "168308",
+      "login": "SONDA ENDOTRAQUEAL C/BALAO 7,5MM COMPER"
+    },
+    {
+      "id": "930005",
+      "fullName": "168309",
+      "login": "SONDA ENDOTRAQUEAL C/BALAO 8MM COMPER"
+    },
+    {
+      "id": "930006",
+      "fullName": "168311",
+      "login": "CANULA GUEDELL ESTERIL NR 4 100MM"
+    },
+    {
+      "id": "930007",
+      "fullName": "168341",
+      "login": "CIRCUITO PARA ANESTESIA EXTENSIVEL 150CM"
+    },
+    {
+      "id": "930008",
+      "fullName": "168357",
+      "login": "FRASCO COLETOR DRENAGEM TORACICA 1500ML"
+    },
+    {
+      "id": "930009",
+      "fullName": "168358",
+      "login": "EXTENSAO HOSPITALAR OX 3M ZAMMI"
+    },
+    {
+      "id": "930010",
+      "fullName": "168359",
+      "login": "EXTENSAO HOSPITALAR OX 1,5M ZAMMI"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfullName\tlogin\n30001\tAndré Schwartz dos Santos\tdecossantos2\nid\tsku\tdescription\n930001\t164293\tARM DRAPE ESTERIL P/SISTEMA ROBOTICO DA\n930002\t164447\tCAL SODADA (ABSORVEDOR DE CO²) 5L\n930003\t164969\tAGULHA DESC. PONTA ROMBA 18GX1 1,20X25MM\n930004\t168308\tSONDA ENDOTRAQUEAL C/BALAO 7,5MM COMPER\n930005\t168309\tSONDA ENDOTRAQUEAL C/BALAO 8MM COMPER\n930006\t168311\tCANULA GUEDELL ESTERIL NR 4 100MM\n930007\t168341\tCIRCUITO PARA ANESTESIA EXTENSIVEL 150CM\n930008\t168357\tFRASCO COLETOR DRENAGEM TORACICA 1500ML\n930009\t168358\tEXTENSAO HOSPITALAR OX 3M ZAMMI\n930010\t168359\tEXTENSAO HOSPITALAR OX 1,5M ZAMMI\n",
+  "stderr": "",
+  "execution_time_ms": 74
+}

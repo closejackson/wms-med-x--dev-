@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT \n  roi.id, roi.receivingOrderId, roi.productId, roi.batch, \n  roi.expectedQuantity, roi.receivedQuantity, roi.tenantId,\n  p.sku, p.description, p.unitsPerBox\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nWHERE roi.receivingOrderId = 300001\nAND roi.productId = 30008;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  roi.id, roi.receivingOrderId, roi.productId, roi.batch, \n  roi.expectedQuantity, roi.receivedQuantity, roi.tenantId,\n  p.sku, p.description, p.unitsPerBox\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nWHERE roi.receivingOrderId = 300001\nAND roi.productId = 30008;\n",
+  "rows": [
+    {
+      "id": "300003",
+      "receivingOrderId": "300001",
+      "productId": "30008",
+      "batch": "NULL",
+      "expectedQuantity": "2400",
+      "receivedQuantity": "100",
+      "tenantId": "30001",
+      "sku": "17380",
+      "description": "LUVA PROC LATEX (P) C/100 DESCARPACK",
+      "unitsPerBox": "100"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\treceivingOrderId\tproductId\tbatch\texpectedQuantity\treceivedQuantity\ttenantId\tsku\tdescription\tunitsPerBox\n300003\t300001\t30008\tNULL\t2400\t100\t30001\t17380\tLUVA PROC LATEX (P) C/100 DESCARPACK\t100\n",
+  "stderr": "",
+  "execution_time_ms": 110
+}

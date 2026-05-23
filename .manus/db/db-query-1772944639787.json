@@ -1,0 +1,26 @@
+{
+  "query": "\n-- 1. Verificar labelAssociations para o produto RIOHEX (SKU 107540)\nSELECT la.id, la.labelCode, la.productId, la.tenantId, la.batch, la.unitsPerBox, la.totalUnits, la.status\nFROM labelAssociations la\nJOIN products p ON la.productId = p.id\nWHERE p.sku = '107540'\nORDER BY la.id DESC\nLIMIT 10;\n\n-- 2. Verificar todos os produtos com SKU 107540 em todos os tenants\nSELECT id, sku, description, tenantId, status\nFROM products\nWHERE sku = '107540'\nORDER BY tenantId;\n\n-- 3. Verificar se o productId 210001 existe na tabela products\nSELECT id, sku, description, tenantId, status\nFROM products\nWHERE id = 210001;\n\n-- 4. Verificar se há products com SKU 107540 no tenant 1 (global)\nSELECT id, sku, description, tenantId\nFROM products\nWHERE sku = '107540' AND tenantId = 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- 1. Verificar labelAssociations para o produto RIOHEX (SKU 107540)\nSELECT la.id, la.labelCode, la.productId, la.tenantId, la.batch, la.unitsPerBox, la.totalUnits, la.status\nFROM labelAssociations la\nJOIN products p ON la.productId = p.id\nWHERE p.sku = '107540'\nORDER BY la.id DESC\nLIMIT 10;\n\n-- 2. Verificar todos os produtos com SKU 107540 em todos os tenants\nSELECT id, sku, description, tenantId, status\nFROM products\nWHERE sku = '107540'\nORDER BY tenantId;\n\n-- 3. Verificar se o productId 210001 existe na tabela products\nSELECT id, sku, description, tenantId, status\nFROM products\nWHERE id = 210001;\n\n-- 4. Verificar se há products com SKU 107540 no tenant 1 (global)\nSELECT id, sku, description, tenantId\nFROM products\nWHERE sku = '107540' AND tenantId = 1;\n",
+  "rows": [
+    {
+      "id": "510001",
+      "labelCode": "44306022D14LA124",
+      "productId": "210001",
+      "tenantId": "30001",
+      "batch": "22D14LA124",
+      "unitsPerBox": "45",
+      "totalUnits": "45",
+      "status": "AVAILABLE"
+    }
+  ],
+  "messages": [
+    "id\tsku\tdescription\ttenantId\tstatus",
+    "210001\t107540\tRIOHEX CLOREXIDINA 2% 100ML\t30001\tactive",
+    "30052\t107540\tRIOHEX CLOREXIDINA 2% SOL ALCOOLICA 100ML RIOQUIMICA\t30002\tactive",
+    "id\tsku\tdescription\ttenantId\tstatus",
+    "210001\t107540\tRIOHEX CLOREXIDINA 2% 100ML\t30001\tactive"
+  ],
+  "stdout": "id\tlabelCode\tproductId\ttenantId\tbatch\tunitsPerBox\ttotalUnits\tstatus\n510001\t44306022D14LA124\t210001\t30001\t22D14LA124\t45\t45\tAVAILABLE\nid\tsku\tdescription\ttenantId\tstatus\n210001\t107540\tRIOHEX CLOREXIDINA 2% 100ML\t30001\tactive\n30052\t107540\tRIOHEX CLOREXIDINA 2% SOL ALCOOLICA 100ML RIOQUIMICA\t30002\tactive\nid\tsku\tdescription\ttenantId\tstatus\n210001\t107540\tRIOHEX CLOREXIDINA 2% 100ML\t30001\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 70
+}

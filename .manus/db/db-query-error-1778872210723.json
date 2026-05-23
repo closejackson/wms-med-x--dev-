@@ -1,0 +1,10 @@
+{
+  "query": "\nSELECT id, orderNumber, tenantId, status FROM receivingOrders WHERE id = 1170003;\n\nSELECT roi.id, roi.receivingOrderId, roi.productId, p.sku, ptm.externalCode, roi.receivedQuantity, roi.expectedQuantity\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productTenantMappings ptm ON ptm.productId = roi.productId\nWHERE roi.receivingOrderId = 1170003;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, orderNumber, tenantId, status FROM receivingOrders WHERE id = 1170003;\n\nSELECT roi.id, roi.receivingOrderId, roi.productId, p.sku, ptm.externalCode, roi.receivedQuantity, roi.expectedQuantity\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productTenantMappings ptm ON ptm.productId = roi.productId\nWHERE roi.receivingOrderId = 1170003;\n",
+  "returncode": 1,
+  "logs": [
+    "id\torderNumber\ttenantId\tstatus",
+    "1170003\tREC-1648-1778872041744\t120001\tscheduled",
+    "ERROR 1054 (42S22) at line 4: Unknown column 'ptm.externalcode' in 'field list'"
+  ]
+}

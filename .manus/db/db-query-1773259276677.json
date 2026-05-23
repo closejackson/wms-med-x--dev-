@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE inventory i\nINNER JOIN warehouseLocations wl ON i.locationId = wl.id\nINNER JOIN warehouseZones wz ON wl.zoneId = wz.id\nSET i.locationZone = COALESCE(wl.zoneCode, wz.code)\nWHERE i.locationZone IS NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute UPDATE inventory i\nINNER JOIN warehouseLocations wl ON i.locationId = wl.id\nINNER JOIN warehouseZones wz ON wl.zoneId = wz.id\nSET i.locationZone = COALESCE(wl.zoneCode, wz.code)\nWHERE i.locationZone IS NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 74
+}

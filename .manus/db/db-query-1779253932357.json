@@ -1,0 +1,43 @@
+{
+  "query": "SELECT COUNT(*) as total_inventory_movements FROM inventoryMovements; SHOW TABLES LIKE '%stock%'; SHOW TABLES LIKE '%picking%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT COUNT(*) as total_inventory_movements FROM inventoryMovements; SHOW TABLES LIKE '%stock%'; SHOW TABLES LIKE '%picking%';",
+  "rows": [
+    {
+      "total_inventory_movements": "63"
+    },
+    {
+      "total_inventory_movements": "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%picking%)"
+    },
+    {
+      "total_inventory_movements": "invoicePickingOrders"
+    },
+    {
+      "total_inventory_movements": "pickingAllocations"
+    },
+    {
+      "total_inventory_movements": "pickingAuditLogs"
+    },
+    {
+      "total_inventory_movements": "pickingInvoiceItems"
+    },
+    {
+      "total_inventory_movements": "pickingOrderItems"
+    },
+    {
+      "total_inventory_movements": "pickingOrders"
+    },
+    {
+      "total_inventory_movements": "pickingProgress"
+    },
+    {
+      "total_inventory_movements": "pickingWaveItems"
+    },
+    {
+      "total_inventory_movements": "pickingWaves"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_inventory_movements\n63\nTables_in_VPbZo3VRZUT62wWDPHVeqm (%picking%)\ninvoicePickingOrders\npickingAllocations\npickingAuditLogs\npickingInvoiceItems\npickingOrderItems\npickingOrders\npickingProgress\npickingWaveItems\npickingWaves\n",
+  "stderr": "",
+  "execution_time_ms": 275
+}

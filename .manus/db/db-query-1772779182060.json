@@ -1,0 +1,50 @@
+{
+  "query": "SELECT * FROM unitAliases WHERE tenantId = 30001 AND alias = 'PÇ';\nSELECT * FROM unitAliases WHERE tenantId = 30001 ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT * FROM unitAliases WHERE tenantId = 30001 AND alias = 'PÇ';\nSELECT * FROM unitAliases WHERE tenantId = 30001 ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "60001",
+      "tenantId": "30001",
+      "alias": "PC",
+      "targetCode": "UN",
+      "createdAt": "2026-03-06 06:38:32",
+      "updatedAt": "2026-03-06 06:38:32"
+    },
+    {
+      "id": "id",
+      "tenantId": "tenantId",
+      "alias": "alias",
+      "targetCode": "targetCode",
+      "createdAt": "createdAt",
+      "updatedAt": "updatedAt"
+    },
+    {
+      "id": "60001",
+      "tenantId": "30001",
+      "alias": "PC",
+      "targetCode": "UN",
+      "createdAt": "2026-03-06 06:38:32",
+      "updatedAt": "2026-03-06 06:38:32"
+    },
+    {
+      "id": "30002",
+      "tenantId": "30001",
+      "alias": "GALÃO",
+      "targetCode": "UN",
+      "createdAt": "2026-03-06 00:15:08",
+      "updatedAt": "2026-03-06 00:15:08"
+    },
+    {
+      "id": "30001",
+      "tenantId": "30001",
+      "alias": "FA",
+      "targetCode": "FD",
+      "createdAt": "2026-03-06 00:14:52",
+      "updatedAt": "2026-03-06 00:14:52"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttenantId\talias\ttargetCode\tcreatedAt\tupdatedAt\n60001\t30001\tPC\tUN\t2026-03-06 06:38:32\t2026-03-06 06:38:32\nid\ttenantId\talias\ttargetCode\tcreatedAt\tupdatedAt\n60001\t30001\tPC\tUN\t2026-03-06 06:38:32\t2026-03-06 06:38:32\n30002\t30001\tGALÃO\tUN\t2026-03-06 00:15:08\t2026-03-06 00:15:08\n30001\t30001\tFA\tFD\t2026-03-06 00:14:52\t2026-03-06 00:14:52\n",
+  "stderr": "",
+  "execution_time_ms": 69
+}

@@ -1,0 +1,1 @@
+ALTER TABLE `tenants` ADD `logoUrl` varchar(1024);

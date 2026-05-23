@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT id, name, type, externalCode, floor, isActive FROM deliveryPoints WHERE tenantId = 120001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, name, type, externalCode, floor, isActive FROM deliveryPoints WHERE tenantId = 120001;\n",
+  "rows": [
+    {
+      "id": "30001",
+      "name": "CAF Medicamentos e Materiais",
+      "type": "PHARMACY",
+      "externalCode": "CAF MAT MED",
+      "floor": "NULL",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttype\texternalCode\tfloor\tisActive\n30001\tCAF Medicamentos e Materiais\tPHARMACY\tCAF MAT MED\tNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 181
+}

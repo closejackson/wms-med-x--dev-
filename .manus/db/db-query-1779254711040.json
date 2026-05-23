@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, inventoryNumber, inventoryType, status, tenantId, totalLocations, countedLocations, createdAt FROM inventories ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, inventoryNumber, inventoryType, status, tenantId, totalLocations, countedLocations, createdAt FROM inventories ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "30002",
+      "inventoryNumber": "INV-000002",
+      "inventoryType": "cyclic",
+      "status": "pending",
+      "tenantId": "30002",
+      "totalLocations": "4",
+      "countedLocations": "0",
+      "createdAt": "2026-05-20 05:18:31"
+    },
+    {
+      "id": "1",
+      "inventoryNumber": "INV-000001",
+      "inventoryType": "general",
+      "status": "cancelled",
+      "tenantId": "NULL",
+      "totalLocations": "804",
+      "countedLocations": "0",
+      "createdAt": "2026-05-20 04:06:51"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tinventoryNumber\tinventoryType\tstatus\ttenantId\ttotalLocations\tcountedLocations\tcreatedAt\n30002\tINV-000002\tcyclic\tpending\t30002\t4\t0\t2026-05-20 05:18:31\n1\tINV-000001\tgeneral\tcancelled\tNULL\t804\t0\t2026-05-20 04:06:51\n",
+  "stderr": "",
+  "execution_time_ms": 262
+}

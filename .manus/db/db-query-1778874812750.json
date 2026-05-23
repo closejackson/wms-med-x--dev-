@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, fullName, login, tenantId FROM systemUsers WHERE id = 450001 OR id = 1 LIMIT 5;\nSELECT id, fullName, login, tenantId FROM systemUsers LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, fullName, login, tenantId FROM systemUsers WHERE id = 450001 OR id = 1 LIMIT 5;\nSELECT id, fullName, login, tenantId FROM systemUsers LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "fullName": "Barbara P Binder",
+      "login": "andre.santos.medax",
+      "tenantId": "30001"
+    },
+    {
+      "id": "id",
+      "fullName": "fullName",
+      "login": "login",
+      "tenantId": "tenantId"
+    },
+    {
+      "id": "1",
+      "fullName": "Barbara P Binder",
+      "login": "andre.santos.medax",
+      "tenantId": "30001"
+    },
+    {
+      "id": "30001",
+      "fullName": "André Schwartz dos Santos",
+      "login": "decossantos2",
+      "tenantId": "120001"
+    },
+    {
+      "id": "60001",
+      "fullName": "André Schwartz dos Santos",
+      "login": "a.santos",
+      "tenantId": "40001"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfullName\tlogin\ttenantId\n1\tBarbara P Binder\tandre.santos.medax\t30001\nid\tfullName\tlogin\ttenantId\n1\tBarbara P Binder\tandre.santos.medax\t30001\n30001\tAndré Schwartz dos Santos\tdecossantos2\t120001\n60001\tAndré Schwartz dos Santos\ta.santos\t40001\n",
+  "stderr": "",
+  "execution_time_ms": 273
+}

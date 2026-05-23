@@ -1,0 +1,17 @@
+{
+  "query": "\n-- Verificar se há múltiplos lotes do mesmo produto na mesma OR\nSELECT \n  roi.receivingOrderId,\n  roi.productId,\n  COUNT(*) as num_lotes,\n  GROUP_CONCAT(roi.batch) as lotes,\n  GROUP_CONCAT(roi.expectedQuantity) as quantidades\nFROM receivingOrderItems roi\nGROUP BY roi.receivingOrderId, roi.productId\nHAVING COUNT(*) > 1\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Verificar se há múltiplos lotes do mesmo produto na mesma OR\nSELECT \n  roi.receivingOrderId,\n  roi.productId,\n  COUNT(*) as num_lotes,\n  GROUP_CONCAT(roi.batch) as lotes,\n  GROUP_CONCAT(roi.expectedQuantity) as quantidades\nFROM receivingOrderItems roi\nGROUP BY roi.receivingOrderId, roi.productId\nHAVING COUNT(*) > 1\nLIMIT 10;\n",
+  "rows": [
+    {
+      "receivingOrderId": "210003",
+      "productId": "60002",
+      "num_lotes": "2",
+      "lotes": "22D08LB109,22D10LB112",
+      "quantidades": "160,560"
+    }
+  ],
+  "messages": [],
+  "stdout": "receivingOrderId\tproductId\tnum_lotes\tlotes\tquantidades\n210003\t60002\t2\t22D08LB109,22D10LB112\t160,560\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

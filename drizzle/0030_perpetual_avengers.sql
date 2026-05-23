@@ -1,0 +1,1 @@
+ALTER TABLE `deliveryLogs` ADD `volumes` int;

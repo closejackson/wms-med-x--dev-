@@ -1,0 +1,38 @@
+{
+  "query": "\n-- Verificar o ID do endereço REC-01-A\nSELECT id, code, tenantId, status, zoneId\nFROM warehouseLocations\nWHERE code = 'REC-01-A';\n\n-- Verificar se há múltiplos endereços com o código REC-01-A (multi-tenant)\nSELECT id, code, tenantId, status, zoneId\nFROM warehouseLocations\nWHERE code LIKE 'REC%'\nORDER BY tenantId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Verificar o ID do endereço REC-01-A\nSELECT id, code, tenantId, status, zoneId\nFROM warehouseLocations\nWHERE code = 'REC-01-A';\n\n-- Verificar se há múltiplos endereços com o código REC-01-A (multi-tenant)\nSELECT id, code, tenantId, status, zoneId\nFROM warehouseLocations\nWHERE code LIKE 'REC%'\nORDER BY tenantId;\n",
+  "rows": [
+    {
+      "id": "30353",
+      "code": "REC-01-A",
+      "tenantId": "30001",
+      "status": "occupied",
+      "zoneId": "1"
+    },
+    {
+      "id": "id",
+      "code": "code",
+      "tenantId": "tenantId",
+      "status": "status",
+      "zoneId": "zoneId"
+    },
+    {
+      "id": "30353",
+      "code": "REC-01-A",
+      "tenantId": "30001",
+      "status": "occupied",
+      "zoneId": "1"
+    },
+    {
+      "id": "30354",
+      "code": "REC-01-B",
+      "tenantId": "30002",
+      "status": "available",
+      "zoneId": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\ttenantId\tstatus\tzoneId\n30353\tREC-01-A\t30001\toccupied\t1\nid\tcode\ttenantId\tstatus\tzoneId\n30353\tREC-01-A\t30001\toccupied\t1\n30354\tREC-01-B\t30002\tavailable\t1\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

@@ -1,0 +1,26 @@
+{
+  "query": "\n-- Verificar o valor exato do batch e outros campos do inventory 510001\nSELECT id, productId, locationId, tenantId, quantity, status, \n       batch, LENGTH(batch) as batchLen, \n       CASE WHEN batch IS NULL THEN 'NULL' WHEN batch = '' THEN 'EMPTY_STRING' ELSE batch END as batchType,\n       uniqueCode, locationZone\nFROM inventory\nWHERE id = 510001;\n\n-- Verificar se o batch do inventory é NULL ou string vazia\nSELECT id, productId, batch IS NULL as isNull, batch = '' as isEmpty, batch\nFROM inventory\nWHERE productId = 210001 AND locationId = 30353;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Verificar o valor exato do batch e outros campos do inventory 510001\nSELECT id, productId, locationId, tenantId, quantity, status, \n       batch, LENGTH(batch) as batchLen, \n       CASE WHEN batch IS NULL THEN 'NULL' WHEN batch = '' THEN 'EMPTY_STRING' ELSE batch END as batchType,\n       uniqueCode, locationZone\nFROM inventory\nWHERE id = 510001;\n\n-- Verificar se o batch do inventory é NULL ou string vazia\nSELECT id, productId, batch IS NULL as isNull, batch = '' as isEmpty, batch\nFROM inventory\nWHERE productId = 210001 AND locationId = 30353;\n",
+  "rows": [
+    {
+      "id": "510001",
+      "productId": "210001",
+      "locationId": "30353",
+      "tenantId": "30001",
+      "quantity": "90",
+      "status": "available",
+      "batch": "",
+      "batchLen": "0",
+      "batchType": "EMPTY_STRING",
+      "uniqueCode": "107540-null",
+      "locationZone": "REC"
+    }
+  ],
+  "messages": [
+    "id\tproductId\tisNull\tisEmpty\tbatch",
+    "510001\t210001\t0\t1\t"
+  ],
+  "stdout": "id\tproductId\tlocationId\ttenantId\tquantity\tstatus\tbatch\tbatchLen\tbatchType\tuniqueCode\tlocationZone\n510001\t210001\t30353\t30001\t90\tavailable\t\t0\tEMPTY_STRING\t107540-null\tREC\nid\tproductId\tisNull\tisEmpty\tbatch\n510001\t210001\t0\t1\t\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

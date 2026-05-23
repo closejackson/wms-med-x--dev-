@@ -1,0 +1,32 @@
+{
+  "query": "\n-- Distribuição por tenant em inventory\nSELECT i.tenantId, t.name AS tenant_nome, COUNT(*) AS registros,\n       SUM(i.quantity) AS estoque_total, SUM(i.reservedQuantity) AS reservado_total\nFROM inventory i\nLEFT JOIN tenants t ON t.id = i.tenantId\nGROUP BY i.tenantId, t.name\nORDER BY i.tenantId;\n\n-- Distribuição por tenant e tipo em inventoryMovements\nSELECT im.tenantId, t.name AS tenant_nome, im.movementType, COUNT(*) AS qtd_movimentos\nFROM inventoryMovements im\nLEFT JOIN tenants t ON t.id = im.tenantId\nGROUP BY im.tenantId, t.name, im.movementType\nORDER BY im.tenantId, im.movementType;\n\n-- Verificar se há registros em inventory onde inv.tenantId != product.tenantId (qualquer tenant)\nSELECT COUNT(*) AS inconsistencias_inventory\nFROM inventory i\nJOIN products p ON p.id = i.productId\nWHERE i.tenantId != p.tenantId;\n\n-- Verificar se há registros em inventoryMovements onde mov.tenantId != product.tenantId\nSELECT COUNT(*) AS inconsistencias_movements\nFROM inventoryMovements im\nJOIN products p ON p.id = im.productId\nWHERE im.tenantId != p.tenantId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Distribuição por tenant em inventory\nSELECT i.tenantId, t.name AS tenant_nome, COUNT(*) AS registros,\n       SUM(i.quantity) AS estoque_total, SUM(i.reservedQuantity) AS reservado_total\nFROM inventory i\nLEFT JOIN tenants t ON t.id = i.tenantId\nGROUP BY i.tenantId, t.name\nORDER BY i.tenantId;\n\n-- Distribuição por tenant e tipo em inventoryMovements\nSELECT im.tenantId, t.name AS tenant_nome, im.movementType, COUNT(*) AS qtd_movimentos\nFROM inventoryMovements im\nLEFT JOIN tenants t ON t.id = im.tenantId\nGROUP BY im.tenantId, t.name, im.movementType\nORDER BY im.tenantId, im.movementType;\n\n-- Verificar se há registros em inventory onde inv.tenantId != product.tenantId (qualquer tenant)\nSELECT COUNT(*) AS inconsistencias_inventory\nFROM inventory i\nJOIN products p ON p.id = i.productId\nWHERE i.tenantId != p.tenantId;\n\n-- Verificar se há registros em inventoryMovements onde mov.tenantId != product.tenantId\nSELECT COUNT(*) AS inconsistencias_movements\nFROM inventoryMovements im\nJOIN products p ON p.id = im.productId\nWHERE im.tenantId != p.tenantId;\n",
+  "rows": [
+    {
+      "tenantId": "30001",
+      "tenant_nome": "(30001) AESC - Mãe de Deus",
+      "registros": "79",
+      "estoque_total": "402634",
+      "reservado_total": "0"
+    },
+    {
+      "tenantId": "30002",
+      "tenant_nome": "(30002) AESC - Mãe de Deus - UCG",
+      "registros": "32",
+      "estoque_total": "7622",
+      "reservado_total": "174"
+    }
+  ],
+  "messages": [
+    "tenantId\ttenant_nome\tmovementType\tqtd_movimentos",
+    "30001\t(30001) AESC - Mãe de Deus\tpicking\t13",
+    "30002\t(30002) AESC - Mãe de Deus - UCG\tpicking\t5",
+    "inconsistencias_inventory",
+    "0",
+    "inconsistencias_movements",
+    "0"
+  ],
+  "stdout": "tenantId\ttenant_nome\tregistros\testoque_total\treservado_total\n30001\t(30001) AESC - Mãe de Deus\t79\t402634\t0\n30002\t(30002) AESC - Mãe de Deus - UCG\t32\t7622\t174\ntenantId\ttenant_nome\tmovementType\tqtd_movimentos\n30001\t(30001) AESC - Mãe de Deus\tpicking\t13\n30002\t(30002) AESC - Mãe de Deus - UCG\tpicking\t5\ninconsistencias_inventory\n0\ninconsistencias_movements\n0\n",
+  "stderr": "",
+  "execution_time_ms": 80
+}

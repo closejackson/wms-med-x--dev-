@@ -1,0 +1,136 @@
+{
+  "query": "\n-- Detalhe unitPendingQueue com tenantId=1\nSELECT upq.id, upq.tenantId, upq.productCode, upq.xmlUnit, upq.reason, upq.status, upq.createdAt\nFROM unitPendingQueue upq\nWHERE upq.tenantId = 1\nORDER BY upq.createdAt DESC;\n\n-- Distribuição de tenantId em unitAliases\nSELECT 'unitAliases' AS tabela, tenantId, COUNT(*) AS qtd FROM unitAliases GROUP BY tenantId ORDER BY tenantId;\n\n-- Distribuição de tenantId em productConversions\nSELECT 'productConversions' AS tabela, tenantId, COUNT(*) AS qtd FROM productConversions GROUP BY tenantId ORDER BY tenantId;\n\n-- Distribuição de tenantId em labelAssociations\nSELECT 'labelAssociations' AS tabela, tenantId, COUNT(*) AS qtd FROM labelAssociations GROUP BY tenantId ORDER BY tenantId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Detalhe unitPendingQueue com tenantId=1\nSELECT upq.id, upq.tenantId, upq.productCode, upq.xmlUnit, upq.reason, upq.status, upq.createdAt\nFROM unitPendingQueue upq\nWHERE upq.tenantId = 1\nORDER BY upq.createdAt DESC;\n\n-- Distribuição de tenantId em unitAliases\nSELECT 'unitAliases' AS tabela, tenantId, COUNT(*) AS qtd FROM unitAliases GROUP BY tenantId ORDER BY tenantId;\n\n-- Distribuição de tenantId em productConversions\nSELECT 'productConversions' AS tabela, tenantId, COUNT(*) AS qtd FROM productConversions GROUP BY tenantId ORDER BY tenantId;\n\n-- Distribuição de tenantId em labelAssociations\nSELECT 'labelAssociations' AS tabela, tenantId, COUNT(*) AS qtd FROM labelAssociations GROUP BY tenantId ORDER BY tenantId;\n",
+  "rows": [
+    {
+      "id": "300002",
+      "tenantId": "1",
+      "productCode": "69846",
+      "xmlUnit": "12",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 09:38:55"
+    },
+    {
+      "id": "300001",
+      "tenantId": "1",
+      "productCode": "107540",
+      "xmlUnit": "30",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 09:38:24"
+    },
+    {
+      "id": "270011",
+      "tenantId": "1",
+      "productCode": "95972",
+      "xmlUnit": "200",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:57:20"
+    },
+    {
+      "id": "270010",
+      "tenantId": "1",
+      "productCode": "90675",
+      "xmlUnit": "12",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:56:48"
+    },
+    {
+      "id": "270009",
+      "tenantId": "1",
+      "productCode": "79119",
+      "xmlUnit": "84",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:55:44"
+    },
+    {
+      "id": "270008",
+      "tenantId": "1",
+      "productCode": "55590",
+      "xmlUnit": "25",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:36:30"
+    },
+    {
+      "id": "270007",
+      "tenantId": "1",
+      "productCode": "42874",
+      "xmlUnit": "12",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:34:53"
+    },
+    {
+      "id": "270006",
+      "tenantId": "1",
+      "productCode": "40133",
+      "xmlUnit": "6",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:34:22"
+    },
+    {
+      "id": "270005",
+      "tenantId": "1",
+      "productCode": "19593",
+      "xmlUnit": "20",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:33:53"
+    },
+    {
+      "id": "270004",
+      "tenantId": "1",
+      "productCode": "19591",
+      "xmlUnit": "12",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:33:18"
+    },
+    {
+      "id": "270003",
+      "tenantId": "1",
+      "productCode": "19588",
+      "xmlUnit": "20",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:32:46"
+    },
+    {
+      "id": "270002",
+      "tenantId": "1",
+      "productCode": "147992",
+      "xmlUnit": "12",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:30:09"
+    },
+    {
+      "id": "270001",
+      "tenantId": "1",
+      "productCode": "19588",
+      "xmlUnit": "10",
+      "reason": "no_conversion",
+      "status": "resolved",
+      "createdAt": "2026-03-12 08:23:19"
+    }
+  ],
+  "messages": [
+    "tabela\ttenantId\tqtd",
+    "unitAliases\t1\t5",
+    "unitAliases\t30001\t3",
+    "tabela\ttenantId\tqtd",
+    "productConversions\t30001\t3",
+    "tabela\ttenantId\tqtd",
+    "labelAssociations\t30001\t13",
+    "labelAssociations\t30002\t2"
+  ],
+  "stdout": "id\ttenantId\tproductCode\txmlUnit\treason\tstatus\tcreatedAt\n300002\t1\t69846\t12\tno_conversion\tresolved\t2026-03-12 09:38:55\n300001\t1\t107540\t30\tno_conversion\tresolved\t2026-03-12 09:38:24\n270011\t1\t95972\t200\tno_conversion\tresolved\t2026-03-12 08:57:20\n270010\t1\t90675\t12\tno_conversion\tresolved\t2026-03-12 08:56:48\n270009\t1\t79119\t84\tno_conversion\tresolved\t2026-03-12 08:55:44\n270008\t1\t55590\t25\tno_conversion\tresolved\t2026-03-12 08:36:30\n270007\t1\t42874\t12\tno_conversion\tresolved\t2026-03-12 08:34:53\n270006\t1\t40133\t6\tno_conversion\tresolved\t2026-03-12 08:34:22\n270005\t1\t19593\t20\tno_conversion\tresolved\t2026-03-12 08:33:53\n270004\t1\t19591\t12\tno_conversion\tresolved\t2026-03-12 08:33:18\n270003\t1\t19588\t20\tno_conversion\tresolved\t2026-03-12 08:32:46\n270002\t1\t147992\t12\tno_conversion\tresolved\t2026-03-12 08:30:09\n270001\t1\t19588\t10\tno_conversion\tresolved\t2026-03-12 08:23:19\ntabela\ttenantId\tqtd\nunitAliases\t1\t5\nunitAliases\t30001\t3\ntabela\ttenantId\tqtd\nproductConversions\t30001\t3\ntabela\ttenantId\tqtd\nlabelAssociations\t30001\t13\nlabelAssociations\t30002\t2\n",
+  "stderr": "",
+  "execution_time_ms": 78
+}

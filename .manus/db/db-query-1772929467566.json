@@ -1,0 +1,190 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "auditLogs"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "blindConferenceAdjustments"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "blindConferenceItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "blindConferenceSessions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "clientPortalSessions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "contracts"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "divergenceApprovals"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "inventory"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "inventoryCountItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "inventoryCounts"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "inventoryMovements"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "invoices"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "labelAssociations"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "labelPrintHistory"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "labelReadings"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "nonConformities"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "packagingLevels"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "permissions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingAllocations"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingAuditLogs"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingInvoiceItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingOrderItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingOrders"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingProgress"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingWaveItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "pickingWaves"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "printSettings"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "productBarcodes"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "productConversions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "productLabels"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "productLocationMapping"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "products"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "recalls"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingConferences"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingDivergences"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingInvoiceItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingOrderItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingOrders"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "receivingPreallocations"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "reportFavorites"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "reportLogs"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "returns"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "rolePermissions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "roles"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "shipmentManifestItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "shipmentManifests"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "shipments"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "stageCheckItems"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "stageChecks"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "systemUsers"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "tenants"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "unitAliases"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "unitPendingQueue"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "userPermissions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "userRoles"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "users"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "warehouseLocations"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "warehouseZones"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm": "warehouses"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_VPbZo3VRZUT62wWDPHVeqm\n__drizzle_migrations\nauditLogs\nblindConferenceAdjustments\nblindConferenceItems\nblindConferenceSessions\nclientPortalSessions\ncontracts\ndivergenceApprovals\ninventory\ninventoryCountItems\ninventoryCounts\ninventoryMovements\ninvoices\nlabelAssociations\nlabelPrintHistory\nlabelReadings\nnonConformities\npackagingLevels\npermissions\npickingAllocations\npickingAuditLogs\npickingInvoiceItems\npickingOrderItems\npickingOrders\npickingProgress\npickingWaveItems\npickingWaves\nprintSettings\nproductBarcodes\nproductConversions\nproductLabels\nproductLocationMapping\nproducts\nrecalls\nreceivingConferences\nreceivingDivergences\nreceivingInvoiceItems\nreceivingOrderItems\nreceivingOrders\nreceivingPreallocations\nreportFavorites\nreportLogs\nreturns\nrolePermissions\nroles\nshipmentManifestItems\nshipmentManifests\nshipments\nstageCheckItems\nstageChecks\nsystemUsers\ntenants\nunitAliases\nunitPendingQueue\nuserPermissions\nuserRoles\nusers\nwarehouseLocations\nwarehouseZones\nwarehouses\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

@@ -1,0 +1,75 @@
+{
+  "query": "SELECT DISTINCT locationType, zoneCode, status FROM warehouseLocations LIMIT 50;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT DISTINCT locationType, zoneCode, status FROM warehouseLocations LIMIT 50;",
+  "rows": [
+    {
+      "locationType": "whole",
+      "zoneCode": "ARM",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "CTR",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "STORAGE",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "NULL",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "SOB",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "DEV",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "REC",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "FAL",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "DEV",
+      "status": "quarantine"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "NCG",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "NCG",
+      "status": "quarantine"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "EXP",
+      "status": "available"
+    },
+    {
+      "locationType": "whole",
+      "zoneCode": "REF",
+      "status": "available"
+    }
+  ],
+  "messages": [],
+  "stdout": "locationType\tzoneCode\tstatus\nwhole\tARM\tavailable\nwhole\tCTR\tavailable\nwhole\tSTORAGE\tavailable\nwhole\tNULL\tavailable\nwhole\tSOB\tavailable\nwhole\tDEV\tavailable\nwhole\tREC\tavailable\nwhole\tFAL\tavailable\nwhole\tDEV\tquarantine\nwhole\tNCG\tavailable\nwhole\tNCG\tquarantine\nwhole\tEXP\tavailable\nwhole\tREF\tavailable\n",
+  "stderr": "",
+  "execution_time_ms": 325
+}

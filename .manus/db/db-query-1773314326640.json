@@ -1,0 +1,13 @@
+{
+  "query": "\nUPDATE productConversions pc\nJOIN products p ON p.id = pc.productId\nSET pc.tenantId = p.tenantId\nWHERE pc.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\nSELECT ROW_COUNT() AS conversions_corrigidas;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nUPDATE productConversions pc\nJOIN products p ON p.id = pc.productId\nSET pc.tenantId = p.tenantId\nWHERE pc.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\nSELECT ROW_COUNT() AS conversions_corrigidas;\n",
+  "rows": [
+    {
+      "conversions_corrigidas": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "conversions_corrigidas\n0\n",
+  "stderr": "",
+  "execution_time_ms": 190
+}

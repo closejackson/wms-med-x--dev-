@@ -1,0 +1,52 @@
+{
+  "query": "\n-- 3.1 productConversions: não deve haver registros onde conversion.tenantId=1 E product.tenantId!=1\nSELECT COUNT(*) AS incorretos_restantes_productConversions\nFROM productConversions pc\nJOIN products p ON p.id = pc.productId\nWHERE pc.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\n-- 3.2 labelAssociations: idem\nSELECT COUNT(*) AS incorretos_restantes_labelAssociations\nFROM labelAssociations la\nJOIN products p ON p.id = la.productId\nWHERE la.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\n-- 3.3 Resumo final por tabela\nSELECT 'productConversions' AS tabela, tenantId, COUNT(*) AS qtd FROM productConversions GROUP BY tenantId ORDER BY tenantId;\nSELECT 'unitAliases' AS tabela, tenantId, COUNT(*) AS qtd FROM unitAliases GROUP BY tenantId ORDER BY tenantId;\nSELECT 'labelAssociations' AS tabela, tenantId, COUNT(*) AS qtd FROM labelAssociations GROUP BY tenantId ORDER BY tenantId;\nSELECT 'unitPendingQueue' AS tabela, tenantId, COUNT(*) AS qtd FROM unitPendingQueue GROUP BY tenantId ORDER BY tenantId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- 3.1 productConversions: não deve haver registros onde conversion.tenantId=1 E product.tenantId!=1\nSELECT COUNT(*) AS incorretos_restantes_productConversions\nFROM productConversions pc\nJOIN products p ON p.id = pc.productId\nWHERE pc.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\n-- 3.2 labelAssociations: idem\nSELECT COUNT(*) AS incorretos_restantes_labelAssociations\nFROM labelAssociations la\nJOIN products p ON p.id = la.productId\nWHERE la.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\n-- 3.3 Resumo final por tabela\nSELECT 'productConversions' AS tabela, tenantId, COUNT(*) AS qtd FROM productConversions GROUP BY tenantId ORDER BY tenantId;\nSELECT 'unitAliases' AS tabela, tenantId, COUNT(*) AS qtd FROM unitAliases GROUP BY tenantId ORDER BY tenantId;\nSELECT 'labelAssociations' AS tabela, tenantId, COUNT(*) AS qtd FROM labelAssociations GROUP BY tenantId ORDER BY tenantId;\nSELECT 'unitPendingQueue' AS tabela, tenantId, COUNT(*) AS qtd FROM unitPendingQueue GROUP BY tenantId ORDER BY tenantId;\n",
+  "rows": [
+    {
+      "incorretos_restantes_productConversions": "0"
+    },
+    {
+      "incorretos_restantes_productConversions": "incorretos_restantes_labelAssociations"
+    },
+    {
+      "incorretos_restantes_productConversions": "0"
+    },
+    {
+      "incorretos_restantes_productConversions": "tabela\ttenantId\tqtd"
+    },
+    {
+      "incorretos_restantes_productConversions": "productConversions\t30001\t3"
+    },
+    {
+      "incorretos_restantes_productConversions": "tabela\ttenantId\tqtd"
+    },
+    {
+      "incorretos_restantes_productConversions": "unitAliases\t30001\t5"
+    },
+    {
+      "incorretos_restantes_productConversions": "unitAliases\t30002\t5"
+    },
+    {
+      "incorretos_restantes_productConversions": "tabela\ttenantId\tqtd"
+    },
+    {
+      "incorretos_restantes_productConversions": "labelAssociations\t30001\t13"
+    },
+    {
+      "incorretos_restantes_productConversions": "labelAssociations\t30002\t2"
+    },
+    {
+      "incorretos_restantes_productConversions": "tabela\ttenantId\tqtd"
+    },
+    {
+      "incorretos_restantes_productConversions": "unitPendingQueue\t1\t13"
+    },
+    {
+      "incorretos_restantes_productConversions": "unitPendingQueue\t30001\t3"
+    }
+  ],
+  "messages": [],
+  "stdout": "incorretos_restantes_productConversions\n0\nincorretos_restantes_labelAssociations\n0\ntabela\ttenantId\tqtd\nproductConversions\t30001\t3\ntabela\ttenantId\tqtd\nunitAliases\t30001\t5\nunitAliases\t30002\t5\ntabela\ttenantId\tqtd\nlabelAssociations\t30001\t13\nlabelAssociations\t30002\t2\ntabela\ttenantId\tqtd\nunitPendingQueue\t1\t13\nunitPendingQueue\t30001\t3\n",
+  "stderr": "",
+  "execution_time_ms": 88
+}

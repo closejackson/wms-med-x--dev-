@@ -1,0 +1,80 @@
+{
+  "query": "SELECT wl.id, wl.code, wl.zoneCode, wl.zoneId, wz.code as zoneCodeFromZone\nFROM warehouseLocations wl\nLEFT JOIN warehouseZones wz ON wl.zoneId = wz.id\nLIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT wl.id, wl.code, wl.zoneCode, wl.zoneId, wz.code as zoneCodeFromZone\nFROM warehouseLocations wl\nLEFT JOIN warehouseZones wz ON wl.zoneId = wz.id\nLIMIT 10;",
+  "rows": [
+    {
+      "id": "30001",
+      "code": "A04-02-02",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30002",
+      "code": "A04-02-04",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30003",
+      "code": "A04-02-06",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30004",
+      "code": "A04-02-08",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30005",
+      "code": "A04-02-10",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30006",
+      "code": "A04-02-12",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30007",
+      "code": "A04-02-14",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30008",
+      "code": "A04-02-16",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30009",
+      "code": "A04-02-18",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    },
+    {
+      "id": "30010",
+      "code": "A04-02-20",
+      "zoneCode": "STORAGE",
+      "zoneId": "4",
+      "zoneCodeFromZone": "STORAGE"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\tzoneCode\tzoneId\tzoneCodeFromZone\n30001\tA04-02-02\tSTORAGE\t4\tSTORAGE\n30002\tA04-02-04\tSTORAGE\t4\tSTORAGE\n30003\tA04-02-06\tSTORAGE\t4\tSTORAGE\n30004\tA04-02-08\tSTORAGE\t4\tSTORAGE\n30005\tA04-02-10\tSTORAGE\t4\tSTORAGE\n30006\tA04-02-12\tSTORAGE\t4\tSTORAGE\n30007\tA04-02-14\tSTORAGE\t4\tSTORAGE\n30008\tA04-02-16\tSTORAGE\t4\tSTORAGE\n30009\tA04-02-18\tSTORAGE\t4\tSTORAGE\n30010\tA04-02-20\tSTORAGE\t4\tSTORAGE\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

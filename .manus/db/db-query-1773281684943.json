@@ -1,0 +1,22 @@
+{
+  "query": "SELECT 'pickingAllocations' as tbl, COUNT(*) as total FROM pickingAllocations pa JOIN pickingOrders po ON pa.pickingOrderId = po.id WHERE po.isLegacyImported = 1 UNION ALL SELECT 'pickingOrderItems' as tbl, COUNT(*) as total FROM pickingOrderItems poi JOIN pickingOrders po ON poi.pickingOrderId = po.id WHERE po.isLegacyImported = 1 UNION ALL SELECT 'pickingOrders' as tbl, COUNT(*) as total FROM pickingOrders WHERE isLegacyImported = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT 'pickingAllocations' as tbl, COUNT(*) as total FROM pickingAllocations pa JOIN pickingOrders po ON pa.pickingOrderId = po.id WHERE po.isLegacyImported = 1 UNION ALL SELECT 'pickingOrderItems' as tbl, COUNT(*) as total FROM pickingOrderItems poi JOIN pickingOrders po ON poi.pickingOrderId = po.id WHERE po.isLegacyImported = 1 UNION ALL SELECT 'pickingOrders' as tbl, COUNT(*) as total FROM pickingOrders WHERE isLegacyImported = 1;",
+  "rows": [
+    {
+      "tbl": "pickingOrders",
+      "total": "1"
+    },
+    {
+      "tbl": "pickingOrderItems",
+      "total": "13"
+    },
+    {
+      "tbl": "pickingAllocations",
+      "total": "13"
+    }
+  ],
+  "messages": [],
+  "stdout": "tbl\ttotal\npickingOrders\t1\npickingOrderItems\t13\npickingAllocations\t13\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

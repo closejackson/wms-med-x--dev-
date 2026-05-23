@@ -1,0 +1,9 @@
+{
+  "query": "\nSELECT\n  la.id AS assoc_id,\n  la.tenantId AS assoc_tenantId,\n  la.labelCode,\n  la.productId,\n  p.sku AS product_sku,\n  p.tenantId AS product_tenantId,\n  t.name AS tenant_correto,\n  la.batch,\n  la.unitsPerBox,\n  la.associatedAt,\n  CASE\n    WHEN p.tenantId = 1 THEN 'OK — produto é do tenant 1 (Med@x)'\n    WHEN p.tenantId IS NULL THEN 'ATENÇÃO — produto sem tenant'\n    ELSE CONCAT('INCORRETO — produto pertence ao tenant ', p.tenantId)\n  END AS diagnostico\nFROM labelAssociations la\nLEFT JOIN products p ON p.id = la.productId\nLEFT JOIN tenants t ON t.id = p.tenantId\nWHERE la.tenantId = 1\nORDER BY diagnostico DESC, la.associatedAt DESC\nLIMIT 100;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT\n  la.id AS assoc_id,\n  la.tenantId AS assoc_tenantId,\n  la.labelCode,\n  la.productId,\n  p.sku AS product_sku,\n  p.tenantId AS product_tenantId,\n  t.name AS tenant_correto,\n  la.batch,\n  la.unitsPerBox,\n  la.associatedAt,\n  CASE\n    WHEN p.tenantId = 1 THEN 'OK — produto é do tenant 1 (Med@x)'\n    WHEN p.tenantId IS NULL THEN 'ATENÇÃO — produto sem tenant'\n    ELSE CONCAT('INCORRETO — produto pertence ao tenant ', p.tenantId)\n  END AS diagnostico\nFROM labelAssociations la\nLEFT JOIN products p ON p.id = la.productId\nLEFT JOIN tenants t ON t.id = p.tenantId\nWHERE la.tenantId = 1\nORDER BY diagnostico DESC, la.associatedAt DESC\nLIMIT 100;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 54
+}

@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT id, name, login, tenantId FROM systemUsers WHERE tenantId = 120001 OR tenantId IS NULL LIMIT 5;\nSELECT id, name, login, tenantId FROM systemUsers LIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, name, login, tenantId FROM systemUsers WHERE tenantId = 120001 OR tenantId IS NULL LIMIT 5;\nSELECT id, name, login, tenantId FROM systemUsers LIMIT 5;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'name' in 'field list'"
+  ]
+}

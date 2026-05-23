@@ -1,0 +1,1 @@
+ALTER TABLE `products` MODIFY COLUMN `sku` varchar(100);

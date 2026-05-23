@@ -1,0 +1,19 @@
+{
+  "query": "\n-- Produto LUVA\nSELECT id, sku, description, unitsPerBox FROM products WHERE id = 30008;\n\n-- Conversões cadastradas para LUVA\nSELECT * FROM productConversions WHERE productId = 30008;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Produto LUVA\nSELECT id, sku, description, unitsPerBox FROM products WHERE id = 30008;\n\n-- Conversões cadastradas para LUVA\nSELECT * FROM productConversions WHERE productId = 30008;\n",
+  "rows": [
+    {
+      "id": "30008",
+      "sku": "17380",
+      "description": "LUVA PROC LATEX (P) C/100 DESCARPACK",
+      "unitsPerBox": "100"
+    }
+  ],
+  "messages": [
+    "id\ttenantId\tproductId\tunitCode\tfactorToBase\troundingStrategy\tnotes\tcreatedAt\tupdatedAt",
+    "1\t30001\t30008\tCX\t12.000000\tround\tNULL\t2026-03-06 00:09:12\t2026-03-06 00:09:12"
+  ],
+  "stdout": "id\tsku\tdescription\tunitsPerBox\n30008\t17380\tLUVA PROC LATEX (P) C/100 DESCARPACK\t100\nid\ttenantId\tproductId\tunitCode\tfactorToBase\troundingStrategy\tnotes\tcreatedAt\tupdatedAt\n1\t30001\t30008\tCX\t12.000000\tround\tNULL\t2026-03-06 00:09:12\t2026-03-06 00:09:12\n",
+  "stderr": "",
+  "execution_time_ms": 77
+}

@@ -1,0 +1,58 @@
+{
+  "query": "\nSELECT \n  i.id, i.locationId, i.labelCode AS inv_labelCode, i.uniqueCode AS inv_uniqueCode, \n  i.status, i.quantity, wl.code AS locationCode, wl.zoneCode\nFROM inventory i\nJOIN warehouseLocations wl ON wl.id = i.locationId\nWHERE i.status = 'available' AND wl.zoneCode IN ('STORAGE','ARM')\nLIMIT 10;\n\nSELECT id, labelCode, uniqueCode, unitsPerBox, status \nFROM labelAssociations \nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  i.id, i.locationId, i.labelCode AS inv_labelCode, i.uniqueCode AS inv_uniqueCode, \n  i.status, i.quantity, wl.code AS locationCode, wl.zoneCode\nFROM inventory i\nJOIN warehouseLocations wl ON wl.id = i.locationId\nWHERE i.status = 'available' AND wl.zoneCode IN ('STORAGE','ARM')\nLIMIT 10;\n\nSELECT id, labelCode, uniqueCode, unitsPerBox, status \nFROM labelAssociations \nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "1920001",
+      "locationId": "390001",
+      "inv_labelCode": "44306022D14LA124",
+      "inv_uniqueCode": "443060-22D14LA124",
+      "status": "available",
+      "quantity": "280",
+      "locationCode": "M03-01-01",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "id": "1920002",
+      "locationId": "390002",
+      "inv_labelCode": "401460P22D08LB108",
+      "inv_uniqueCode": "401460P-22D08LB108",
+      "status": "available",
+      "quantity": "160",
+      "locationCode": "M03-01-02",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "id": "1920003",
+      "locationId": "390003",
+      "inv_labelCode": "401460P22D10LB111",
+      "inv_uniqueCode": "401460P-22D10LB111",
+      "status": "available",
+      "quantity": "560",
+      "locationCode": "M03-01-03",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "id": "1920004",
+      "locationId": "390001",
+      "inv_labelCode": "83420722D08LA129",
+      "inv_uniqueCode": "834207-22D08LA129",
+      "status": "available",
+      "quantity": "140",
+      "locationCode": "M03-01-01",
+      "zoneCode": "STORAGE"
+    }
+  ],
+  "messages": [
+    "id\tlabelCode\tuniqueCode\tunitsPerBox\tstatus",
+    "1590001\t789638580044\t207-126121\t1\tAVAILABLE",
+    "1620001\t60341|126132\t60341126132\t1\tAVAILABLE",
+    "1650001\t44306022D14LA124\t443060-22D14LA124\t140\tAVAILABLE",
+    "1650002\t401460P22D08LB108\t401460P-22D08LB108\t80\tAVAILABLE",
+    "1650003\t401460P22D10LB111\t401460P-22D10LB111\t80\tAVAILABLE",
+    "1650004\t83420722D08LA129\t834207-22D08LA129\t140\tAVAILABLE"
+  ],
+  "stdout": "id\tlocationId\tinv_labelCode\tinv_uniqueCode\tstatus\tquantity\tlocationCode\tzoneCode\n1920001\t390001\t44306022D14LA124\t443060-22D14LA124\tavailable\t280\tM03-01-01\tSTORAGE\n1920002\t390002\t401460P22D08LB108\t401460P-22D08LB108\tavailable\t160\tM03-01-02\tSTORAGE\n1920003\t390003\t401460P22D10LB111\t401460P-22D10LB111\tavailable\t560\tM03-01-03\tSTORAGE\n1920004\t390001\t83420722D08LA129\t834207-22D08LA129\tavailable\t140\tM03-01-01\tSTORAGE\nid\tlabelCode\tuniqueCode\tunitsPerBox\tstatus\n1590001\t789638580044\t207-126121\t1\tAVAILABLE\n1620001\t60341|126132\t60341126132\t1\tAVAILABLE\n1650001\t44306022D14LA124\t443060-22D14LA124\t140\tAVAILABLE\n1650002\t401460P22D08LB108\t401460P-22D08LB108\t80\tAVAILABLE\n1650003\t401460P22D10LB111\t401460P-22D10LB111\t80\tAVAILABLE\n1650004\t83420722D08LA129\t834207-22D08LA129\t140\tAVAILABLE\n",
+  "stderr": "",
+  "execution_time_ms": 333
+}

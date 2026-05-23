@@ -1,0 +1,109 @@
+{
+  "query": "\nSELECT \n  bci.id as bci_id,\n  bci.conferenceId,\n  bci.productId,\n  bci.batch as bci_batch,\n  roi.batch as roi_batch,\n  roi.expectedQuantity,\n  bcs.receivingOrderId\nFROM blindConferenceItems bci\nLEFT JOIN blindConferenceSessions bcs ON bcs.id = bci.conferenceId\nLEFT JOIN receivingOrderItems roi ON (\n  roi.receivingOrderId = bcs.receivingOrderId\n  AND roi.productId = bci.productId\n  AND roi.tenantId = bci.tenantId\n  AND COALESCE(roi.batch, '') = COALESCE(bci.batch, '')\n)\nORDER BY bci.id DESC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  bci.id as bci_id,\n  bci.conferenceId,\n  bci.productId,\n  bci.batch as bci_batch,\n  roi.batch as roi_batch,\n  roi.expectedQuantity,\n  bcs.receivingOrderId\nFROM blindConferenceItems bci\nLEFT JOIN blindConferenceSessions bcs ON bcs.id = bci.conferenceId\nLEFT JOIN receivingOrderItems roi ON (\n  roi.receivingOrderId = bcs.receivingOrderId\n  AND roi.productId = bci.productId\n  AND roi.tenantId = bci.tenantId\n  AND COALESCE(roi.batch, '') = COALESCE(bci.batch, '')\n)\nORDER BY bci.id DESC\nLIMIT 15;\n",
+  "rows": [
+    {
+      "bci_id": "270030",
+      "conferenceId": "270001",
+      "productId": "30008",
+      "bci_batch": "566421255lm",
+      "roi_batch": "NULL",
+      "expectedQuantity": "NULL",
+      "receivingOrderId": "300001"
+    },
+    {
+      "bci_id": "270025",
+      "conferenceId": "270001",
+      "productId": "180001",
+      "bci_batch": "5652256LK",
+      "roi_batch": "NULL",
+      "expectedQuantity": "NULL",
+      "receivingOrderId": "300001"
+    },
+    {
+      "bci_id": "270001",
+      "conferenceId": "270001",
+      "productId": "30007",
+      "bci_batch": "2526546GF",
+      "roi_batch": "NULL",
+      "expectedQuantity": "NULL",
+      "receivingOrderId": "300001"
+    },
+    {
+      "bci_id": "240001",
+      "conferenceId": "240001",
+      "productId": "150006",
+      "bci_batch": "123456",
+      "roi_batch": "NULL",
+      "expectedQuantity": "NULL",
+      "receivingOrderId": "270003"
+    },
+    {
+      "bci_id": "210012",
+      "conferenceId": "210001",
+      "productId": "60003",
+      "bci_batch": "22D08LA129",
+      "roi_batch": "22D08LA129",
+      "expectedQuantity": "140",
+      "receivingOrderId": "240001"
+    },
+    {
+      "bci_id": "210003",
+      "conferenceId": "210001",
+      "productId": "60002",
+      "bci_batch": "22D08LB108",
+      "roi_batch": "22D08LB108",
+      "expectedQuantity": "720",
+      "receivingOrderId": "240001"
+    },
+    {
+      "bci_id": "210001",
+      "conferenceId": "210001",
+      "productId": "60001",
+      "bci_batch": "22D14LA124",
+      "roi_batch": "22D14LA124",
+      "expectedQuantity": "280",
+      "receivingOrderId": "240001"
+    },
+    {
+      "bci_id": "180041",
+      "conferenceId": "180003",
+      "productId": "60003",
+      "bci_batch": "22D08LA130",
+      "roi_batch": "22D08LA130",
+      "expectedQuantity": "140",
+      "receivingOrderId": "210003"
+    },
+    {
+      "bci_id": "180034",
+      "conferenceId": "180003",
+      "productId": "60002",
+      "bci_batch": "22D10LB112",
+      "roi_batch": "22D10LB112",
+      "expectedQuantity": "560",
+      "receivingOrderId": "210003"
+    },
+    {
+      "bci_id": "180032",
+      "conferenceId": "180003",
+      "productId": "60002",
+      "bci_batch": "22D08LB109",
+      "roi_batch": "22D08LB109",
+      "expectedQuantity": "160",
+      "receivingOrderId": "210003"
+    },
+    {
+      "bci_id": "180030",
+      "conferenceId": "180003",
+      "productId": "60001",
+      "bci_batch": "22D14LA125",
+      "roi_batch": "22D14LA125",
+      "expectedQuantity": "280",
+      "receivingOrderId": "210003"
+    }
+  ],
+  "messages": [],
+  "stdout": "bci_id\tconferenceId\tproductId\tbci_batch\troi_batch\texpectedQuantity\treceivingOrderId\n270030\t270001\t30008\t566421255lm\tNULL\tNULL\t300001\n270025\t270001\t180001\t5652256LK\tNULL\tNULL\t300001\n270001\t270001\t30007\t2526546GF\tNULL\tNULL\t300001\n240001\t240001\t150006\t123456\tNULL\tNULL\t270003\n210012\t210001\t60003\t22D08LA129\t22D08LA129\t140\t240001\n210003\t210001\t60002\t22D08LB108\t22D08LB108\t720\t240001\n210001\t210001\t60001\t22D14LA124\t22D14LA124\t280\t240001\n180041\t180003\t60003\t22D08LA130\t22D08LA130\t140\t210003\n180034\t180003\t60002\t22D10LB112\t22D10LB112\t560\t210003\n180032\t180003\t60002\t22D08LB109\t22D08LB109\t160\t210003\n180030\t180003\t60001\t22D14LA125\t22D14LA125\t280\t210003\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

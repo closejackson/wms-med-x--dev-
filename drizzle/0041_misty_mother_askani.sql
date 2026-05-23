@@ -1,0 +1,1 @@
+ALTER TABLE `products` DROP INDEX `products_sku_unique`;

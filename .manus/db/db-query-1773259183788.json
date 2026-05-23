@@ -1,0 +1,22 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN zoneCode IS NULL THEN 1 ELSE 0 END) as sem_zoneCode FROM warehouseLocations LIMIT 1;\nSELECT COUNT(*) as total_inv, SUM(CASE WHEN locationZone IS NULL THEN 1 ELSE 0 END) as sem_locationZone FROM inventory LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT COUNT(*) as total, SUM(CASE WHEN zoneCode IS NULL THEN 1 ELSE 0 END) as sem_zoneCode FROM warehouseLocations LIMIT 1;\nSELECT COUNT(*) as total_inv, SUM(CASE WHEN locationZone IS NULL THEN 1 ELSE 0 END) as sem_locationZone FROM inventory LIMIT 1;",
+  "rows": [
+    {
+      "total": "724",
+      "sem_zoneCode": "679"
+    },
+    {
+      "total": "total_inv",
+      "sem_zoneCode": "sem_locationZone"
+    },
+    {
+      "total": "97",
+      "sem_zoneCode": "97"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tsem_zoneCode\n724\t679\ntotal_inv\tsem_locationZone\n97\t97\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

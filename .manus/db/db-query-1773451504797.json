@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, name, cnpj, status FROM tenants ORDER BY id LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, name, cnpj, status FROM tenants ORDER BY id LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Global Admin",
+      "cnpj": "31673254001508",
+      "status": "active"
+    },
+    {
+      "id": "30001",
+      "name": "(30001) AESC - Mãe de Deus",
+      "cnpj": "88625686002443",
+      "status": "active"
+    },
+    {
+      "id": "30002",
+      "name": "(30002) AESC - Mãe de Deus - UCG",
+      "cnpj": "88625686002444",
+      "status": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcnpj\tstatus\n1\tGlobal Admin\t31673254001508\tactive\n30001\t(30001) AESC - Mãe de Deus\t88625686002443\tactive\n30002\t(30002) AESC - Mãe de Deus - UCG\t88625686002444\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 112
+}

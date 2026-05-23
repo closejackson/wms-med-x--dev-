@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT 'unitAliases' AS tabela, COUNT(*) AS total_registros, SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END) AS com_tenantId_1, SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) AS outros_tenants FROM unitAliases\nUNION ALL\nSELECT 'productConversions', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM productConversions\nUNION ALL\nSELECT 'unitPendingQueue', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM unitPendingQueue\nUNION ALL\nSELECT 'labelAssociations', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM labelAssociations;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT 'unitAliases' AS tabela, COUNT(*) AS total_registros, SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END) AS com_tenantId_1, SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) AS outros_tenants FROM unitAliases\nUNION ALL\nSELECT 'productConversions', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM productConversions\nUNION ALL\nSELECT 'unitPendingQueue', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM unitPendingQueue\nUNION ALL\nSELECT 'labelAssociations', COUNT(*), SUM(CASE WHEN tenantId = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN tenantId != 1 THEN 1 ELSE 0 END) FROM labelAssociations;\n",
+  "rows": [
+    {
+      "tabela": "productConversions",
+      "total_registros": "3",
+      "com_tenantId_1": "0",
+      "outros_tenants": "3"
+    },
+    {
+      "tabela": "unitAliases",
+      "total_registros": "8",
+      "com_tenantId_1": "5",
+      "outros_tenants": "3"
+    },
+    {
+      "tabela": "labelAssociations",
+      "total_registros": "15",
+      "com_tenantId_1": "0",
+      "outros_tenants": "15"
+    },
+    {
+      "tabela": "unitPendingQueue",
+      "total_registros": "16",
+      "com_tenantId_1": "13",
+      "outros_tenants": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "tabela\ttotal_registros\tcom_tenantId_1\toutros_tenants\nproductConversions\t3\t0\t3\nunitAliases\t8\t5\t3\nlabelAssociations\t15\t0\t15\nunitPendingQueue\t16\t13\t3\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

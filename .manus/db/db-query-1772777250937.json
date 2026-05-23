@@ -1,0 +1,120 @@
+{
+  "query": "\nSELECT \n  bci.id as bci_id,\n  bci.conferenceId,\n  bci.productId,\n  COALESCE(bci.batch, 'NULL') as bci_batch,\n  LENGTH(COALESCE(bci.batch, '')) as bci_batch_len,\n  bci.tenantId as bci_tenant,\n  bci.packagesRead,\n  bci.unitsRead\nFROM blindConferenceItems bci\nORDER BY bci.id DESC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  bci.id as bci_id,\n  bci.conferenceId,\n  bci.productId,\n  COALESCE(bci.batch, 'NULL') as bci_batch,\n  LENGTH(COALESCE(bci.batch, '')) as bci_batch_len,\n  bci.tenantId as bci_tenant,\n  bci.packagesRead,\n  bci.unitsRead\nFROM blindConferenceItems bci\nORDER BY bci.id DESC\nLIMIT 15;\n",
+  "rows": [
+    {
+      "bci_id": "270030",
+      "conferenceId": "270001",
+      "productId": "30008",
+      "bci_batch": "566421255lm",
+      "bci_batch_len": "11",
+      "bci_tenant": "30001",
+      "packagesRead": "1",
+      "unitsRead": "100"
+    },
+    {
+      "bci_id": "270025",
+      "conferenceId": "270001",
+      "productId": "180001",
+      "bci_batch": "5652256LK",
+      "bci_batch_len": "9",
+      "bci_tenant": "30001",
+      "packagesRead": "4",
+      "unitsRead": "20"
+    },
+    {
+      "bci_id": "270001",
+      "conferenceId": "270001",
+      "productId": "30007",
+      "bci_batch": "2526546GF",
+      "bci_batch_len": "9",
+      "bci_tenant": "30001",
+      "packagesRead": "24",
+      "unitsRead": "2400"
+    },
+    {
+      "bci_id": "240001",
+      "conferenceId": "240001",
+      "productId": "150006",
+      "bci_batch": "123456",
+      "bci_batch_len": "6",
+      "bci_tenant": "30001",
+      "packagesRead": "1",
+      "unitsRead": "1"
+    },
+    {
+      "bci_id": "210012",
+      "conferenceId": "210001",
+      "productId": "60003",
+      "bci_batch": "22D08LA129",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "1",
+      "unitsRead": "140"
+    },
+    {
+      "bci_id": "210003",
+      "conferenceId": "210001",
+      "productId": "60002",
+      "bci_batch": "22D08LB108",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "9",
+      "unitsRead": "720"
+    },
+    {
+      "bci_id": "210001",
+      "conferenceId": "210001",
+      "productId": "60001",
+      "bci_batch": "22D14LA124",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "2",
+      "unitsRead": "280"
+    },
+    {
+      "bci_id": "180041",
+      "conferenceId": "180003",
+      "productId": "60003",
+      "bci_batch": "22D08LA130",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "1",
+      "unitsRead": "140"
+    },
+    {
+      "bci_id": "180034",
+      "conferenceId": "180003",
+      "productId": "60002",
+      "bci_batch": "22D10LB112",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "7",
+      "unitsRead": "560"
+    },
+    {
+      "bci_id": "180032",
+      "conferenceId": "180003",
+      "productId": "60002",
+      "bci_batch": "22D08LB109",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "2",
+      "unitsRead": "160"
+    },
+    {
+      "bci_id": "180030",
+      "conferenceId": "180003",
+      "productId": "60001",
+      "bci_batch": "22D14LA125",
+      "bci_batch_len": "10",
+      "bci_tenant": "30002",
+      "packagesRead": "2",
+      "unitsRead": "280"
+    }
+  ],
+  "messages": [],
+  "stdout": "bci_id\tconferenceId\tproductId\tbci_batch\tbci_batch_len\tbci_tenant\tpackagesRead\tunitsRead\n270030\t270001\t30008\t566421255lm\t11\t30001\t1\t100\n270025\t270001\t180001\t5652256LK\t9\t30001\t4\t20\n270001\t270001\t30007\t2526546GF\t9\t30001\t24\t2400\n240001\t240001\t150006\t123456\t6\t30001\t1\t1\n210012\t210001\t60003\t22D08LA129\t10\t30002\t1\t140\n210003\t210001\t60002\t22D08LB108\t10\t30002\t9\t720\n210001\t210001\t60001\t22D14LA124\t10\t30002\t2\t280\n180041\t180003\t60003\t22D08LA130\t10\t30002\t1\t140\n180034\t180003\t60002\t22D10LB112\t10\t30002\t7\t560\n180032\t180003\t60002\t22D08LB109\t10\t30002\t2\t160\n180030\t180003\t60001\t22D14LA125\t10\t30002\t2\t280\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

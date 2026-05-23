@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT id, receivingOrderId, productId, batch, tenantId, expectedQuantity\nFROM receivingOrderItems\nWHERE receivingOrderId = 300001\nAND productId IN (30007, 30008, 180001)\nORDER BY productId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, receivingOrderId, productId, batch, tenantId, expectedQuantity\nFROM receivingOrderItems\nWHERE receivingOrderId = 300001\nAND productId IN (30007, 30008, 180001)\nORDER BY productId;\n",
+  "rows": [
+    {
+      "id": "300001",
+      "receivingOrderId": "300001",
+      "productId": "30007",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "2400"
+    },
+    {
+      "id": "300003",
+      "receivingOrderId": "300001",
+      "productId": "30008",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "2400"
+    },
+    {
+      "id": "300002",
+      "receivingOrderId": "300001",
+      "productId": "180001",
+      "batch": "NULL",
+      "tenantId": "30001",
+      "expectedQuantity": "25"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\treceivingOrderId\tproductId\tbatch\ttenantId\texpectedQuantity\n300001\t300001\t30007\tNULL\t30001\t2400\n300003\t300001\t30008\tNULL\t30001\t2400\n300002\t300001\t180001\tNULL\t30001\t25\n",
+  "stderr": "",
+  "execution_time_ms": 66
+}

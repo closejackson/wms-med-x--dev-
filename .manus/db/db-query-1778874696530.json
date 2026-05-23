@@ -1,0 +1,21 @@
+{
+  "query": "SELECT id, productId, batch, performedBy, movementType, quantity, fromLocationId, toLocationId, createdAt FROM inventoryMovements WHERE productId IN (SELECT id FROM products WHERE sku = '207') ORDER BY createdAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, productId, batch, performedBy, movementType, quantity, fromLocationId, toLocationId, createdAt FROM inventoryMovements WHERE productId IN (SELECT id FROM products WHERE sku = '207') ORDER BY createdAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "1440001",
+      "productId": "990001",
+      "batch": "",
+      "performedBy": "450001",
+      "movementType": "receiving",
+      "quantity": "56448",
+      "fromLocationId": "NULL",
+      "toLocationId": "210001",
+      "createdAt": "2026-05-15 19:47:09"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tproductId\tbatch\tperformedBy\tmovementType\tquantity\tfromLocationId\ttoLocationId\tcreatedAt\n1440001\t990001\t\t450001\treceiving\t56448\tNULL\t210001\t2026-05-15 19:47:09\n",
+  "stderr": "",
+  "execution_time_ms": 329
+}

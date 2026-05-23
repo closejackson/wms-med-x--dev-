@@ -1,0 +1,88 @@
+{
+  "query": "SELECT id, waveId, productSku, locationCode FROM pickingWaveItems WHERE id = 10 OR waveId IN (SELECT id FROM pickingWaves WHERE id = 300001 OR waveNumber LIKE '%300001%') ORDER BY waveId, id LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, waveId, productSku, locationCode FROM pickingWaveItems WHERE id = 10 OR waveId IN (SELECT id FROM pickingWaves WHERE id = 300001 OR waveNumber LIKE '%300001%') ORDER BY waveId, id LIMIT 20;",
+  "rows": [
+    {
+      "id": "300001",
+      "waveId": "300001",
+      "productSku": "79119",
+      "locationCode": "M03-04-35"
+    },
+    {
+      "id": "300002",
+      "waveId": "300001",
+      "productSku": "79119",
+      "locationCode": "M03-04-33"
+    },
+    {
+      "id": "300003",
+      "waveId": "300001",
+      "productSku": "19591",
+      "locationCode": "M03-02-55"
+    },
+    {
+      "id": "300004",
+      "waveId": "300001",
+      "productSku": "55590",
+      "locationCode": "M03-04-23"
+    },
+    {
+      "id": "300005",
+      "waveId": "300001",
+      "productSku": "55590",
+      "locationCode": "M03-04-23"
+    },
+    {
+      "id": "300006",
+      "waveId": "300001",
+      "productSku": "90675",
+      "locationCode": "M03-01-53"
+    },
+    {
+      "id": "300007",
+      "waveId": "300001",
+      "productSku": "19593",
+      "locationCode": "M03-02-29"
+    },
+    {
+      "id": "300008",
+      "waveId": "300001",
+      "productSku": "42874",
+      "locationCode": "M03-02-45"
+    },
+    {
+      "id": "300009",
+      "waveId": "300001",
+      "productSku": "147992",
+      "locationCode": "M03-02-55"
+    },
+    {
+      "id": "300010",
+      "waveId": "300001",
+      "productSku": "19588",
+      "locationCode": "M03-02-55"
+    },
+    {
+      "id": "300011",
+      "waveId": "300001",
+      "productSku": "40133",
+      "locationCode": "M03-01-05"
+    },
+    {
+      "id": "300012",
+      "waveId": "300001",
+      "productSku": "95972",
+      "locationCode": "M03-01-13"
+    },
+    {
+      "id": "300013",
+      "waveId": "300001",
+      "productSku": "59188",
+      "locationCode": "M03-01-39"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\twaveId\tproductSku\tlocationCode\n300001\t300001\t79119\tM03-04-35\n300002\t300001\t79119\tM03-04-33\n300003\t300001\t19591\tM03-02-55\n300004\t300001\t55590\tM03-04-23\n300005\t300001\t55590\tM03-04-23\n300006\t300001\t90675\tM03-01-53\n300007\t300001\t19593\tM03-02-29\n300008\t300001\t42874\tM03-02-45\n300009\t300001\t147992\tM03-02-55\n300010\t300001\t19588\tM03-02-55\n300011\t300001\t40133\tM03-01-05\n300012\t300001\t95972\tM03-01-13\n300013\t300001\t59188\tM03-01-39\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

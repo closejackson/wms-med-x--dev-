@@ -1,0 +1,37 @@
+{
+  "query": "\nSELECT roi.id, roi.productId, roi.expectedQuantity, roi.receivedQuantity, roi.status, p.sku, p.unitsPerBox\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nWHERE roi.tenantId = 30001\nORDER BY roi.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT roi.id, roi.productId, roi.expectedQuantity, roi.receivedQuantity, roi.status, p.sku, p.unitsPerBox\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nWHERE roi.tenantId = 30001\nORDER BY roi.id;\n",
+  "rows": [
+    {
+      "id": "450004",
+      "productId": "210001",
+      "expectedQuantity": "90",
+      "receivedQuantity": "45",
+      "status": "receiving",
+      "sku": "107540",
+      "unitsPerBox": "45"
+    },
+    {
+      "id": "450005",
+      "productId": "210002",
+      "expectedQuantity": "6",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "sku": "30223456",
+      "unitsPerBox": "6"
+    },
+    {
+      "id": "450006",
+      "productId": "180008",
+      "expectedQuantity": "12",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "sku": "30227945",
+      "unitsPerBox": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tproductId\texpectedQuantity\treceivedQuantity\tstatus\tsku\tunitsPerBox\n450004\t210001\t90\t45\treceiving\t107540\t45\n450005\t210002\t6\t0\tpending\t30223456\t6\n450006\t180008\t12\t0\tpending\t30227945\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

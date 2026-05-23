@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO blindConferenceAdjustments (sessionId, associationId, previousQuantity, conferenceId, productId, batch, oldQuantity, newQuantity, reason, adjustedBy) VALUES ('R990002', 0, 56448, 990002, 990001, '126121', 56448, 56448, '[QTDE MANUAL] Conferencia Manual', 1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute INSERT INTO blindConferenceAdjustments (sessionId, associationId, previousQuantity, conferenceId, productId, batch, oldQuantity, newQuantity, reason, adjustedBy) VALUES ('R990002', 0, 56448, 990002, 990001, '126121', 56448, 56448, '[QTDE MANUAL] Conferencia Manual', 1);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1366 (HY000) at line 1: Incorrect ? value: '?' for column 'sessionId' at row 1"
+  ]
+}

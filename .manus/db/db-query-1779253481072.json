@@ -1,0 +1,40 @@
+{
+  "query": "SELECT tenantId, status, COUNT(*) as total FROM warehouseLocations GROUP BY tenantId, status ORDER BY tenantId, status LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT tenantId, status, COUNT(*) as total FROM warehouseLocations GROUP BY tenantId, status ORDER BY tenantId, status LIMIT 20;",
+  "rows": [
+    {
+      "tenantId": "30001",
+      "status": "available",
+      "total": "10"
+    },
+    {
+      "tenantId": "30001",
+      "status": "quarantine",
+      "total": "1"
+    },
+    {
+      "tenantId": "30002",
+      "status": "available",
+      "total": "554"
+    },
+    {
+      "tenantId": "40001",
+      "status": "available",
+      "total": "340"
+    },
+    {
+      "tenantId": "120001",
+      "status": "available",
+      "total": "245"
+    },
+    {
+      "tenantId": "120001",
+      "status": "quarantine",
+      "total": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "tenantId\tstatus\ttotal\n30001\tavailable\t10\n30001\tquarantine\t1\n30002\tavailable\t554\n40001\tavailable\t340\n120001\tavailable\t245\n120001\tquarantine\t2\n",
+  "stderr": "",
+  "execution_time_ms": 337
+}

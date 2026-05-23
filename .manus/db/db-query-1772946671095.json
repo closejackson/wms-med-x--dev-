@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE receivingOrderItems roi\nJOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nSET roi.expectedQuantity = ROUND(roi.expectedQuantity * pc.factorToBase),\n    roi.updatedAt = NOW()\nWHERE roi.tenantId = 30001\n  AND roi.receivedQuantity = 0\n  AND roi.expectedQuantity < pc.factorToBase\n  AND pc.factorToBase > 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nUPDATE receivingOrderItems roi\nJOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nSET roi.expectedQuantity = ROUND(roi.expectedQuantity * pc.factorToBase),\n    roi.updatedAt = NOW()\nWHERE roi.tenantId = 30001\n  AND roi.receivedQuantity = 0\n  AND roi.expectedQuantity < pc.factorToBase\n  AND pc.factorToBase > 1;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 62
+}

@@ -1,0 +1,33 @@
+{
+  "query": "\nSELECT \n  i.id, i.productId, i.batch, i.expiryDate, i.quantity, i.locationId,\n  bci.batch AS bci_batch, bci.expiryDate AS bci_expiry\nFROM inventory i\nLEFT JOIN blindConferenceItems bci ON bci.productId = i.productId AND bci.tenantId = i.tenantId\nWHERE i.productId IN (SELECT id FROM products WHERE sku = '207')\nLIMIT 10;\n\nSELECT \n  im.id, im.productId, im.batch, im.performedBy, im.createdAt,\n  u.name AS userName\nFROM inventoryMovements im\nLEFT JOIN users u ON u.id = im.performedBy\nWHERE im.productId IN (SELECT id FROM products WHERE sku = '207')\nORDER BY im.id DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  i.id, i.productId, i.batch, i.expiryDate, i.quantity, i.locationId,\n  bci.batch AS bci_batch, bci.expiryDate AS bci_expiry\nFROM inventory i\nLEFT JOIN blindConferenceItems bci ON bci.productId = i.productId AND bci.tenantId = i.tenantId\nWHERE i.productId IN (SELECT id FROM products WHERE sku = '207')\nLIMIT 10;\n\nSELECT \n  im.id, im.productId, im.batch, im.performedBy, im.createdAt,\n  u.name AS userName\nFROM inventoryMovements im\nLEFT JOIN users u ON u.id = im.performedBy\nWHERE im.productId IN (SELECT id FROM products WHERE sku = '207')\nORDER BY im.id DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "1800001",
+      "productId": "990001",
+      "batch": "",
+      "expiryDate": "NULL",
+      "quantity": "56448",
+      "locationId": "210001",
+      "bci_batch": "126121",
+      "bci_expiry": "2027-05-01"
+    },
+    {
+      "id": "1800001",
+      "productId": "990001",
+      "batch": "",
+      "expiryDate": "NULL",
+      "quantity": "56448",
+      "locationId": "210001",
+      "bci_batch": "126121",
+      "bci_expiry": "2027-05-01"
+    }
+  ],
+  "messages": [
+    "id\tproductId\tbatch\tperformedBy\tcreatedAt\tuserName",
+    "1440001\t990001\t\t450001\t2026-05-15 19:47:09\tOperação Medax"
+  ],
+  "stdout": "id\tproductId\tbatch\texpiryDate\tquantity\tlocationId\tbci_batch\tbci_expiry\n1800001\t990001\t\tNULL\t56448\t210001\t126121\t2027-05-01\n1800001\t990001\t\tNULL\t56448\t210001\t126121\t2027-05-01\nid\tproductId\tbatch\tperformedBy\tcreatedAt\tuserName\n1440001\t990001\t\t450001\t2026-05-15 19:47:09\tOperação Medax\n",
+  "stderr": "",
+  "execution_time_ms": 318
+}

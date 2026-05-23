@@ -1,0 +1,49 @@
+{
+  "query": "\nSELECT \n  i.id,\n  i.tenantId,\n  i.productId,\n  p.sku,\n  i.locationId,\n  wl.code as locationCode,\n  i.batch,\n  i.quantity,\n  i.reservedQuantity,\n  i.status,\n  i.updatedAt\nFROM inventory i\nLEFT JOIN products p ON i.productId = p.id\nLEFT JOIN warehouseLocations wl ON i.locationId = wl.id\nWHERE i.quantity <= 0\nORDER BY i.updatedAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  i.id,\n  i.tenantId,\n  i.productId,\n  p.sku,\n  i.locationId,\n  wl.code as locationCode,\n  i.batch,\n  i.quantity,\n  i.reservedQuantity,\n  i.status,\n  i.updatedAt\nFROM inventory i\nLEFT JOIN products p ON i.productId = p.id\nLEFT JOIN warehouseLocations wl ON i.locationId = wl.id\nWHERE i.quantity <= 0\nORDER BY i.updatedAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "690049",
+      "tenantId": "30001",
+      "productId": "30010",
+      "sku": "79119",
+      "locationId": "30273",
+      "locationCode": "M03-04-33",
+      "batch": "28592109",
+      "quantity": "0",
+      "reservedQuantity": "0",
+      "status": "available",
+      "updatedAt": "2026-03-12 20:02:56"
+    },
+    {
+      "id": "690058",
+      "tenantId": "30001",
+      "productId": "30021",
+      "sku": "90675",
+      "locationId": "30125",
+      "locationCode": "M03-01-53",
+      "batch": "1513437",
+      "quantity": "0",
+      "reservedQuantity": "0",
+      "status": "available",
+      "updatedAt": "2026-03-12 20:02:56"
+    },
+    {
+      "id": "690034",
+      "tenantId": "30001",
+      "productId": "240001",
+      "sku": "59188",
+      "locationId": "30111",
+      "locationCode": "M03-01-39",
+      "batch": "0633930225",
+      "quantity": "0",
+      "reservedQuantity": "0",
+      "status": "available",
+      "updatedAt": "2026-03-12 20:02:56"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttenantId\tproductId\tsku\tlocationId\tlocationCode\tbatch\tquantity\treservedQuantity\tstatus\tupdatedAt\n690049\t30001\t30010\t79119\t30273\tM03-04-33\t28592109\t0\t0\tavailable\t2026-03-12 20:02:56\n690058\t30001\t30021\t90675\t30125\tM03-01-53\t1513437\t0\t0\tavailable\t2026-03-12 20:02:56\n690034\t30001\t240001\t59188\t30111\tM03-01-39\t0633930225\t0\t0\tavailable\t2026-03-12 20:02:56\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

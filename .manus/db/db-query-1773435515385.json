@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  SUM(CASE WHEN wl.status = 'occupied' AND NOT EXISTS (SELECT 1 FROM inventory i WHERE i.locationId = wl.id AND i.quantity > 0) THEN 1 ELSE 0 END) as occupied_sem_estoque,\n  SUM(CASE WHEN wl.status = 'available' AND EXISTS (SELECT 1 FROM inventory i WHERE i.locationId = wl.id AND i.quantity > 0) THEN 1 ELSE 0 END) as available_com_estoque,\n  COUNT(*) as total_enderecos\nFROM warehouseLocations wl;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  SUM(CASE WHEN wl.status = 'occupied' AND NOT EXISTS (SELECT 1 FROM inventory i WHERE i.locationId = wl.id AND i.quantity > 0) THEN 1 ELSE 0 END) as occupied_sem_estoque,\n  SUM(CASE WHEN wl.status = 'available' AND EXISTS (SELECT 1 FROM inventory i WHERE i.locationId = wl.id AND i.quantity > 0) THEN 1 ELSE 0 END) as available_com_estoque,\n  COUNT(*) as total_enderecos\nFROM warehouseLocations wl;\n",
+  "rows": [
+    {
+      "occupied_sem_estoque": "0",
+      "available_com_estoque": "0",
+      "total_enderecos": "724"
+    }
+  ],
+  "messages": [],
+  "stdout": "occupied_sem_estoque\tavailable_com_estoque\ttotal_enderecos\n0\t0\t724\n",
+  "stderr": "",
+  "execution_time_ms": 89
+}

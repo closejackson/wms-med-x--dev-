@@ -1,0 +1,78 @@
+{
+  "query": "\n-- Detalhe dos 5 aliases com tenantId=1\nSELECT ua.id, ua.tenantId, ua.alias, ua.targetCode, ua.createdAt\nFROM unitAliases ua\nWHERE ua.tenantId = 1\nORDER BY ua.alias;\n\n-- Verificar se esses aliases existem também para o tenant 30001\nSELECT ua.id, ua.tenantId, ua.alias, ua.targetCode, ua.createdAt\nFROM unitAliases ua\nWHERE ua.tenantId = 30001\nORDER BY ua.alias;\n\n-- Verificar se há tenants cadastrados além do tenant 1\nSELECT id, name FROM tenants ORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Detalhe dos 5 aliases com tenantId=1\nSELECT ua.id, ua.tenantId, ua.alias, ua.targetCode, ua.createdAt\nFROM unitAliases ua\nWHERE ua.tenantId = 1\nORDER BY ua.alias;\n\n-- Verificar se esses aliases existem também para o tenant 30001\nSELECT ua.id, ua.tenantId, ua.alias, ua.targetCode, ua.createdAt\nFROM unitAliases ua\nWHERE ua.tenantId = 30001\nORDER BY ua.alias;\n\n-- Verificar se há tenants cadastrados além do tenant 1\nSELECT id, name FROM tenants ORDER BY id;\n",
+  "rows": [
+    {
+      "id": "120001",
+      "tenantId": "1",
+      "alias": "FA",
+      "targetCode": "FD",
+      "createdAt": "2026-03-10 17:23:13"
+    },
+    {
+      "id": "120004",
+      "tenantId": "1",
+      "alias": "FDO",
+      "targetCode": "FD",
+      "createdAt": "2026-03-10 17:25:02"
+    },
+    {
+      "id": "120002",
+      "tenantId": "1",
+      "alias": "GALÃO",
+      "targetCode": "UN",
+      "createdAt": "2026-03-10 17:24:18"
+    },
+    {
+      "id": "120003",
+      "tenantId": "1",
+      "alias": "PAC",
+      "targetCode": "PCT",
+      "createdAt": "2026-03-10 17:24:48"
+    },
+    {
+      "id": "120005",
+      "tenantId": "1",
+      "alias": "PC",
+      "targetCode": "UN",
+      "createdAt": "2026-03-10 17:25:20"
+    },
+    {
+      "id": "id",
+      "tenantId": "tenantId",
+      "alias": "alias",
+      "targetCode": "targetCode",
+      "createdAt": "createdAt"
+    },
+    {
+      "id": "30001",
+      "tenantId": "30001",
+      "alias": "FA",
+      "targetCode": "FD",
+      "createdAt": "2026-03-06 00:14:52"
+    },
+    {
+      "id": "30002",
+      "tenantId": "30001",
+      "alias": "GALÃO",
+      "targetCode": "UN",
+      "createdAt": "2026-03-06 00:15:08"
+    },
+    {
+      "id": "60001",
+      "tenantId": "30001",
+      "alias": "PC",
+      "targetCode": "UN",
+      "createdAt": "2026-03-06 06:38:32"
+    }
+  ],
+  "messages": [
+    "id\tname",
+    "1\tGlobal Admin",
+    "30001\t(30001) AESC - Mãe de Deus",
+    "30002\t(30002) AESC - Mãe de Deus - UCG"
+  ],
+  "stdout": "id\ttenantId\talias\ttargetCode\tcreatedAt\n120001\t1\tFA\tFD\t2026-03-10 17:23:13\n120004\t1\tFDO\tFD\t2026-03-10 17:25:02\n120002\t1\tGALÃO\tUN\t2026-03-10 17:24:18\n120003\t1\tPAC\tPCT\t2026-03-10 17:24:48\n120005\t1\tPC\tUN\t2026-03-10 17:25:20\nid\ttenantId\talias\ttargetCode\tcreatedAt\n30001\t30001\tFA\tFD\t2026-03-06 00:14:52\n30002\t30001\tGALÃO\tUN\t2026-03-06 00:15:08\n60001\t30001\tPC\tUN\t2026-03-06 06:38:32\nid\tname\n1\tGlobal Admin\n30001\t(30001) AESC - Mãe de Deus\n30002\t(30002) AESC - Mãe de Deus - UCG\n",
+  "stderr": "",
+  "execution_time_ms": 74
+}

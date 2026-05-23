@@ -1,0 +1,37 @@
+{
+  "query": "SHOW TABLES LIKE '%alias%';\nSHOW TABLES LIKE '%conver%';\nSHOW TABLES LIKE '%product%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SHOW TABLES LIKE '%alias%';\nSHOW TABLES LIKE '%conver%';\nSHOW TABLES LIKE '%product%';",
+  "rows": [
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "unitAliases"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%conver%)"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "productConversions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%product%)"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "productBarcodes"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "productConversions"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "productLabels"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "productLocationMapping"
+    },
+    {
+      "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)": "products"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_VPbZo3VRZUT62wWDPHVeqm (%alias%)\nunitAliases\nTables_in_VPbZo3VRZUT62wWDPHVeqm (%conver%)\nproductConversions\nTables_in_VPbZo3VRZUT62wWDPHVeqm (%product%)\nproductBarcodes\nproductConversions\nproductLabels\nproductLocationMapping\nproducts\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

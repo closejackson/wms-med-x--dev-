@@ -1,0 +1,85 @@
+{
+  "query": "\nSELECT id, sku, description FROM products WHERE tenantId = 120001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT id, sku, description FROM products WHERE tenantId = 120001;\n",
+  "rows": [
+    {
+      "id": "930001",
+      "sku": "164293",
+      "description": "ARM DRAPE ESTERIL P/SISTEMA ROBOTICO DA"
+    },
+    {
+      "id": "930002",
+      "sku": "164447",
+      "description": "CAL SODADA (ABSORVEDOR DE CO²) 5L"
+    },
+    {
+      "id": "930003",
+      "sku": "164969",
+      "description": "AGULHA DESC. PONTA ROMBA 18GX1 1,20X25MM"
+    },
+    {
+      "id": "930004",
+      "sku": "168308",
+      "description": "SONDA ENDOTRAQUEAL C/BALAO 7,5MM COMPER"
+    },
+    {
+      "id": "930005",
+      "sku": "168309",
+      "description": "SONDA ENDOTRAQUEAL C/BALAO 8MM COMPER"
+    },
+    {
+      "id": "930006",
+      "sku": "168311",
+      "description": "CANULA GUEDELL ESTERIL NR 4 100MM"
+    },
+    {
+      "id": "930007",
+      "sku": "168341",
+      "description": "CIRCUITO PARA ANESTESIA EXTENSIVEL 150CM"
+    },
+    {
+      "id": "930008",
+      "sku": "168357",
+      "description": "FRASCO COLETOR DRENAGEM TORACICA 1500ML"
+    },
+    {
+      "id": "930009",
+      "sku": "168358",
+      "description": "EXTENSAO HOSPITALAR OX 3M ZAMMI"
+    },
+    {
+      "id": "930010",
+      "sku": "168359",
+      "description": "EXTENSAO HOSPITALAR OX 1,5M ZAMMI"
+    },
+    {
+      "id": "930011",
+      "sku": "168383",
+      "description": "TAMPA SERINGA LUER ESTERIL CX C/200UN"
+    },
+    {
+      "id": "930012",
+      "sku": "168389",
+      "description": "TAMPA LUER LOCK CX 100UN"
+    },
+    {
+      "id": "930013",
+      "sku": "142518",
+      "description": "KIT CIR UNIVERSAL VIII STD C/2 AVENTAIS"
+    },
+    {
+      "id": "930014",
+      "sku": "143292",
+      "description": "TORNEIRA 3V TRO-VENOFLOW MP"
+    },
+    {
+      "id": "930015",
+      "sku": "145592",
+      "description": "COMPRESSA ESTERIL SAFE 7,5X7,5CM 13F PCT"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsku\tdescription\n930001\t164293\tARM DRAPE ESTERIL P/SISTEMA ROBOTICO DA\n930002\t164447\tCAL SODADA (ABSORVEDOR DE CO²) 5L\n930003\t164969\tAGULHA DESC. PONTA ROMBA 18GX1 1,20X25MM\n930004\t168308\tSONDA ENDOTRAQUEAL C/BALAO 7,5MM COMPER\n930005\t168309\tSONDA ENDOTRAQUEAL C/BALAO 8MM COMPER\n930006\t168311\tCANULA GUEDELL ESTERIL NR 4 100MM\n930007\t168341\tCIRCUITO PARA ANESTESIA EXTENSIVEL 150CM\n930008\t168357\tFRASCO COLETOR DRENAGEM TORACICA 1500ML\n930009\t168358\tEXTENSAO HOSPITALAR OX 3M ZAMMI\n930010\t168359\tEXTENSAO HOSPITALAR OX 1,5M ZAMMI\n930011\t168383\tTAMPA SERINGA LUER ESTERIL CX C/200UN\n930012\t168389\tTAMPA LUER LOCK CX 100UN\n930013\t142518\tKIT CIR UNIVERSAL VIII STD C/2 AVENTAIS\n930014\t143292\tTORNEIRA 3V TRO-VENOFLOW MP\n930015\t145592\tCOMPRESSA ESTERIL SAFE 7,5X7,5CM 13F PCT\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}

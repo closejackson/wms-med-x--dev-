@@ -1,0 +1,52 @@
+{
+  "query": "\nSELECT \n  roi.id, roi.receivingOrderId, roi.productId, roi.expectedQuantity, roi.receivedQuantity,\n  roi.status, roi.labelCode,\n  p.sku, p.description, p.unitsPerBox,\n  pc.factorToBase, pc.unitCode AS conversionUnit\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nWHERE roi.tenantId = 30001\n  AND roi.status NOT IN ('received', 'completed')\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  roi.id, roi.receivingOrderId, roi.productId, roi.expectedQuantity, roi.receivedQuantity,\n  roi.status, roi.labelCode,\n  p.sku, p.description, p.unitsPerBox,\n  pc.factorToBase, pc.unitCode AS conversionUnit\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nWHERE roi.tenantId = 30001\n  AND roi.status NOT IN ('received', 'completed')\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "450006",
+      "receivingOrderId": "450002",
+      "productId": "180008",
+      "expectedQuantity": "12",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "labelCode": "NULL",
+      "sku": "30227945",
+      "description": "PAPEL HIG SCOTT ROLO",
+      "unitsPerBox": "NULL",
+      "factorToBase": "12.000000",
+      "conversionUnit": "CX"
+    },
+    {
+      "id": "450004",
+      "receivingOrderId": "450002",
+      "productId": "210001",
+      "expectedQuantity": "90",
+      "receivedQuantity": "45",
+      "status": "receiving",
+      "labelCode": "44306022D14LA124",
+      "sku": "107540",
+      "description": "RIOHEX CLOREXIDINA 2% 100ML",
+      "unitsPerBox": "45",
+      "factorToBase": "NULL",
+      "conversionUnit": "NULL"
+    },
+    {
+      "id": "450005",
+      "receivingOrderId": "450002",
+      "productId": "210002",
+      "expectedQuantity": "1",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "labelCode": "NULL",
+      "sku": "30223456",
+      "description": "TOALHA SCOTT BASIC ROLO",
+      "unitsPerBox": "6",
+      "factorToBase": "6.000000",
+      "conversionUnit": "CX"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\treceivingOrderId\tproductId\texpectedQuantity\treceivedQuantity\tstatus\tlabelCode\tsku\tdescription\tunitsPerBox\tfactorToBase\tconversionUnit\n450006\t450002\t180008\t12\t0\tpending\tNULL\t30227945\tPAPEL HIG SCOTT ROLO\tNULL\t12.000000\tCX\n450004\t450002\t210001\t90\t45\treceiving\t44306022D14LA124\t107540\tRIOHEX CLOREXIDINA 2% 100ML\t45\tNULL\tNULL\n450005\t450002\t210002\t1\t0\tpending\tNULL\t30223456\tTOALHA SCOTT BASIC ROLO\t6\t6.000000\tCX\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

@@ -1,0 +1,12 @@
+{
+  "query": "\n-- Verificar tenant Santa Casa\nSELECT id, name, intraHospitalEnabled FROM tenants WHERE id = 120001;\n\n-- Verificar deliveryPoints existentes\nSELECT id, name, type, externalCode, floor FROM deliveryPoints WHERE tenantId = 120001;\n\n-- Verificar pickingOrders existentes\nSELECT id, status, destination, createdAt FROM pickingOrders WHERE tenantId = 120001 LIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Verificar tenant Santa Casa\nSELECT id, name, intraHospitalEnabled FROM tenants WHERE id = 120001;\n\n-- Verificar deliveryPoints existentes\nSELECT id, name, type, externalCode, floor FROM deliveryPoints WHERE tenantId = 120001;\n\n-- Verificar pickingOrders existentes\nSELECT id, status, destination, createdAt FROM pickingOrders WHERE tenantId = 120001 LIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "id\tname\tintraHospitalEnabled",
+    "120001\tSanta Casa de Misericórdia\t1",
+    "id\tname\ttype\texternalCode\tfloor",
+    "30001\tCAF Medicamentos e Materiais\tPHARMACY\tCAF MAT MED\tNULL",
+    "ERROR 1054 (42S22) at line 9: Unknown column 'destination' in 'field list'"
+  ]
+}

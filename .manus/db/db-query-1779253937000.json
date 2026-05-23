@@ -1,0 +1,181 @@
+{
+  "query": "DESCRIBE inventoryMovements; SELECT COUNT(*) as total FROM inventoryMovements WHERE DATE(createdAt) = '2026-05-20';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute DESCRIBE inventoryMovements; SELECT COUNT(*) as total FROM inventoryMovements WHERE DATE(createdAt) = '2026-05-20';",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "tenantId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "productId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "batch",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "uniqueCode",
+      "Type": "varchar(200)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "serialNumber",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fromLocationId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "toLocationId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "quantity",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "movementType",
+      "Type": "enum('receiving','put_away','picking','transfer','adjustment','return','disposal','quality')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "referenceType",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "referenceId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "performedBy",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "notes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "MUL",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "labelCode",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "expiryDate",
+      "Type": "date",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "originalUnit",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "originalQty",
+      "Type": "decimal(18,6)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "conversionFactor",
+      "Type": "decimal(18,6)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "conversionSource",
+      "Type": "enum('uTrib','uCom','manual','none')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [
+    "total",
+    "8"
+  ],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\ntenantId\tint\tYES\tMUL\tNULL\t\nproductId\tint\tNO\t\tNULL\t\nbatch\tvarchar(50)\tYES\t\tNULL\t\nuniqueCode\tvarchar(200)\tYES\t\tNULL\t\nserialNumber\tvarchar(100)\tYES\t\tNULL\t\nfromLocationId\tint\tYES\t\tNULL\t\ntoLocationId\tint\tYES\t\tNULL\t\nquantity\tint\tNO\t\tNULL\t\nmovementType\tenum('receiving','put_away','picking','transfer','adjustment','return','disposal','quality')\tNO\t\tNULL\t\nreferenceType\tvarchar(50)\tYES\tMUL\tNULL\t\nreferenceId\tint\tYES\t\tNULL\t\nperformedBy\tint\tNO\t\tNULL\t\nnotes\ttext\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\tMUL\tCURRENT_TIMESTAMP\t\nlabelCode\tvarchar(100)\tYES\tMUL\tNULL\t\nexpiryDate\tdate\tYES\t\tNULL\t\noriginalUnit\tvarchar(50)\tYES\t\tNULL\t\noriginalQty\tdecimal(18,6)\tYES\t\tNULL\t\nconversionFactor\tdecimal(18,6)\tYES\t\tNULL\t\nconversionSource\tenum('uTrib','uCom','manual','none')\tYES\t\tNULL\t\ntotal\n8\n",
+  "stderr": "",
+  "execution_time_ms": 273
+}

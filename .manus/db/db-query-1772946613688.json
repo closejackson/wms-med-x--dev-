@@ -1,0 +1,43 @@
+{
+  "query": "\nSELECT \n  roi.id, roi.productId, roi.expectedQuantity, roi.receivedQuantity,\n  roi.status, p.sku, p.unitsPerBox,\n  pc.factorToBase, pc.unitCode\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nWHERE roi.tenantId = 30001\nORDER BY roi.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT \n  roi.id, roi.productId, roi.expectedQuantity, roi.receivedQuantity,\n  roi.status, p.sku, p.unitsPerBox,\n  pc.factorToBase, pc.unitCode\nFROM receivingOrderItems roi\nJOIN products p ON p.id = roi.productId\nLEFT JOIN productConversions pc ON pc.productId = roi.productId AND pc.tenantId = roi.tenantId\nWHERE roi.tenantId = 30001\nORDER BY roi.id;\n",
+  "rows": [
+    {
+      "id": "450004",
+      "productId": "210001",
+      "expectedQuantity": "90",
+      "receivedQuantity": "45",
+      "status": "receiving",
+      "sku": "107540",
+      "unitsPerBox": "45",
+      "factorToBase": "NULL",
+      "unitCode": "NULL"
+    },
+    {
+      "id": "450005",
+      "productId": "210002",
+      "expectedQuantity": "1",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "sku": "30223456",
+      "unitsPerBox": "6",
+      "factorToBase": "6.000000",
+      "unitCode": "CX"
+    },
+    {
+      "id": "450006",
+      "productId": "180008",
+      "expectedQuantity": "12",
+      "receivedQuantity": "0",
+      "status": "pending",
+      "sku": "30227945",
+      "unitsPerBox": "NULL",
+      "factorToBase": "12.000000",
+      "unitCode": "CX"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tproductId\texpectedQuantity\treceivedQuantity\tstatus\tsku\tunitsPerBox\tfactorToBase\tunitCode\n450004\t210001\t90\t45\treceiving\t107540\t45\tNULL\tNULL\n450005\t210002\t1\t0\tpending\t30223456\t6\t6.000000\tCX\n450006\t180008\t12\t0\tpending\t30227945\tNULL\t12.000000\tCX\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

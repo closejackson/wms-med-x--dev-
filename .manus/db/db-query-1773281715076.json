@@ -1,0 +1,75 @@
+{
+  "query": "SELECT pa.locationCode, wz.code as zoneCode, COUNT(pa.id) as count FROM pickingAllocations pa LEFT JOIN warehouseLocations wl ON pa.locationId = wl.id LEFT JOIN warehouseZones wz ON wl.zoneId = wz.id GROUP BY pa.locationCode, wz.code ORDER BY count DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT pa.locationCode, wz.code as zoneCode, COUNT(pa.id) as count FROM pickingAllocations pa LEFT JOIN warehouseLocations wl ON pa.locationId = wl.id LEFT JOIN warehouseZones wz ON wl.zoneId = wz.id GROUP BY pa.locationCode, wz.code ORDER BY count DESC LIMIT 20;",
+  "rows": [
+    {
+      "locationCode": "M03-02-55",
+      "zoneCode": "STORAGE",
+      "count": "5"
+    },
+    {
+      "locationCode": "M03-01-53",
+      "zoneCode": "STORAGE",
+      "count": "3"
+    },
+    {
+      "locationCode": "M03-04-23",
+      "zoneCode": "STORAGE",
+      "count": "3"
+    },
+    {
+      "locationCode": "M03-01-05",
+      "zoneCode": "STORAGE",
+      "count": "2"
+    },
+    {
+      "locationCode": "M03-01-39",
+      "zoneCode": "STORAGE",
+      "count": "2"
+    },
+    {
+      "locationCode": "M03-02-29",
+      "zoneCode": "STORAGE",
+      "count": "2"
+    },
+    {
+      "locationCode": "M03-02-45",
+      "zoneCode": "STORAGE",
+      "count": "2"
+    },
+    {
+      "locationCode": "M03-04-35",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    },
+    {
+      "locationCode": "M03-04-33",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    },
+    {
+      "locationCode": "M03-02-11",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    },
+    {
+      "locationCode": "M03-04-31",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    },
+    {
+      "locationCode": "M03-01-13",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    },
+    {
+      "locationCode": "M03-01-29",
+      "zoneCode": "STORAGE",
+      "count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "locationCode\tzoneCode\tcount\nM03-02-55\tSTORAGE\t5\nM03-01-53\tSTORAGE\t3\nM03-04-23\tSTORAGE\t3\nM03-01-05\tSTORAGE\t2\nM03-01-39\tSTORAGE\t2\nM03-02-29\tSTORAGE\t2\nM03-02-45\tSTORAGE\t2\nM03-04-35\tSTORAGE\t1\nM03-04-33\tSTORAGE\t1\nM03-02-11\tSTORAGE\t1\nM03-04-31\tSTORAGE\t1\nM03-01-13\tSTORAGE\t1\nM03-01-29\tSTORAGE\t1\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Deletar todos os waveItems da onda problemática\nDELETE FROM pickingWaveItems WHERE waveId = 270001;\n\n-- Deletar a onda problemática\nDELETE FROM pickingWaves WHERE id = 270001;\n\n-- Resetar status dos pedidos que estavam nessa onda para \"pending\"\nUPDATE pickingOrders SET status = 'pending', waveId = NULL WHERE waveId = 270001;\n\n-- Resetar waveId nas alocações\nUPDATE pickingAllocations SET waveId = NULL WHERE waveId = 270001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Deletar todos os waveItems da onda problemática\nDELETE FROM pickingWaveItems WHERE waveId = 270001;\n\n-- Deletar a onda problemática\nDELETE FROM pickingWaves WHERE id = 270001;\n\n-- Resetar status dos pedidos que estavam nessa onda para \"pending\"\nUPDATE pickingOrders SET status = 'pending', waveId = NULL WHERE waveId = 270001;\n\n-- Resetar waveId nas alocações\nUPDATE pickingAllocations SET waveId = NULL WHERE waveId = 270001;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 252
+}

@@ -1,0 +1,13 @@
+{
+  "query": "\nUPDATE labelAssociations la\nJOIN products p ON p.id = la.productId\nSET la.tenantId = p.tenantId\nWHERE la.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\nSELECT ROW_COUNT() AS label_associations_corrigidas;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nUPDATE labelAssociations la\nJOIN products p ON p.id = la.productId\nSET la.tenantId = p.tenantId\nWHERE la.tenantId = 1\n  AND p.tenantId IS NOT NULL\n  AND p.tenantId != 1;\n\nSELECT ROW_COUNT() AS label_associations_corrigidas;\n",
+  "rows": [
+    {
+      "label_associations_corrigidas": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "label_associations_corrigidas\n0\n",
+  "stderr": "",
+  "execution_time_ms": 168
+}

@@ -1,0 +1,9 @@
+{
+  "query": "\nSELECT\n  pc.id AS conversion_id,\n  pc.tenantId AS conversion_tenantId,\n  pc.productId,\n  p.sku AS product_sku,\n  p.tenantId AS product_tenantId,\n  t.name AS tenant_correto,\n  pc.unitCode,\n  pc.factorToBase,\n  pc.createdAt,\n  CASE\n    WHEN p.tenantId = 1 THEN 'OK — produto é do tenant 1 (Med@x)'\n    WHEN p.tenantId IS NULL THEN 'ATENÇÃO — produto sem tenant'\n    ELSE CONCAT('INCORRETO — produto pertence ao tenant ', p.tenantId)\n  END AS diagnostico\nFROM productConversions pc\nLEFT JOIN products p ON p.id = pc.productId\nLEFT JOIN tenants t ON t.id = p.tenantId\nWHERE pc.tenantId = 1\nORDER BY diagnostico DESC, pc.createdAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \nSELECT\n  pc.id AS conversion_id,\n  pc.tenantId AS conversion_tenantId,\n  pc.productId,\n  p.sku AS product_sku,\n  p.tenantId AS product_tenantId,\n  t.name AS tenant_correto,\n  pc.unitCode,\n  pc.factorToBase,\n  pc.createdAt,\n  CASE\n    WHEN p.tenantId = 1 THEN 'OK — produto é do tenant 1 (Med@x)'\n    WHEN p.tenantId IS NULL THEN 'ATENÇÃO — produto sem tenant'\n    ELSE CONCAT('INCORRETO — produto pertence ao tenant ', p.tenantId)\n  END AS diagnostico\nFROM productConversions pc\nLEFT JOIN products p ON p.id = pc.productId\nLEFT JOIN tenants t ON t.id = p.tenantId\nWHERE pc.tenantId = 1\nORDER BY diagnostico DESC, pc.createdAt DESC;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 60
+}

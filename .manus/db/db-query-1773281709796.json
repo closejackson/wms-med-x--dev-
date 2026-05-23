@@ -1,0 +1,37 @@
+{
+  "query": "SELECT COUNT(*) as sem_zona FROM warehouseLocations WHERE zoneId IS NULL; SELECT COUNT(*) as com_zona FROM warehouseLocations WHERE zoneId IS NOT NULL; SELECT wz.code, COUNT(wl.id) as locations FROM warehouseZones wz LEFT JOIN warehouseLocations wl ON wl.zoneId = wz.id GROUP BY wz.id, wz.code ORDER BY wz.code;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT COUNT(*) as sem_zona FROM warehouseLocations WHERE zoneId IS NULL; SELECT COUNT(*) as com_zona FROM warehouseLocations WHERE zoneId IS NOT NULL; SELECT wz.code, COUNT(wl.id) as locations FROM warehouseZones wz LEFT JOIN warehouseLocations wl ON wl.zoneId = wz.id GROUP BY wz.id, wz.code ORDER BY wz.code;",
+  "rows": [
+    {
+      "sem_zona": "0"
+    },
+    {
+      "sem_zona": "com_zona"
+    },
+    {
+      "sem_zona": "724"
+    },
+    {
+      "sem_zona": "code\tlocations"
+    },
+    {
+      "sem_zona": "DEV\t4"
+    },
+    {
+      "sem_zona": "EXP\t2"
+    },
+    {
+      "sem_zona": "NCG\t4"
+    },
+    {
+      "sem_zona": "REC\t2"
+    },
+    {
+      "sem_zona": "STORAGE\t712"
+    }
+  ],
+  "messages": [],
+  "stdout": "sem_zona\n0\ncom_zona\n724\ncode\tlocations\nDEV\t4\nEXP\t2\nNCG\t4\nREC\t2\nSTORAGE\t712\n",
+  "stderr": "",
+  "execution_time_ms": 87
+}

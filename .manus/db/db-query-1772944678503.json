@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, code, tenantId, status FROM warehouseLocations WHERE code LIKE 'REC%' ORDER BY tenantId, id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, code, tenantId, status FROM warehouseLocations WHERE code LIKE 'REC%' ORDER BY tenantId, id;",
+  "rows": [
+    {
+      "id": "30353",
+      "code": "REC-01-A",
+      "tenantId": "30001",
+      "status": "occupied"
+    },
+    {
+      "id": "30354",
+      "code": "REC-01-B",
+      "tenantId": "30002",
+      "status": "available"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\ttenantId\tstatus\n30353\tREC-01-A\t30001\toccupied\n30354\tREC-01-B\t30002\tavailable\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

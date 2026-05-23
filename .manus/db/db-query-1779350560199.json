@@ -1,0 +1,55 @@
+{
+  "query": "\n-- Inventário ativo e seus endereços\nSELECT inv.id AS invId, inv.status, il.id AS invLocId, il.locationId, il.status AS locStatus,\n       wl.code AS locationCode, wl.zoneCode\nFROM inventories inv\nJOIN inventoryLocations il ON il.inventoryId = inv.id\nJOIN warehouseLocations wl ON wl.id = il.locationId\nWHERE inv.status IN ('pending','in_progress')\nORDER BY wl.code\nLIMIT 10;\n\n-- Saldo no endereço M03-01-01 (locationId 390001)\nSELECT i.id, i.locationId, i.labelCode, i.uniqueCode, i.status, i.quantity,\n       wl.code AS locationCode\nFROM inventory i\nJOIN warehouseLocations wl ON wl.id = i.locationId\nWHERE i.labelCode = '44306022D14LA124' AND i.status = 'available';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Inventário ativo e seus endereços\nSELECT inv.id AS invId, inv.status, il.id AS invLocId, il.locationId, il.status AS locStatus,\n       wl.code AS locationCode, wl.zoneCode\nFROM inventories inv\nJOIN inventoryLocations il ON il.inventoryId = inv.id\nJOIN warehouseLocations wl ON wl.id = il.locationId\nWHERE inv.status IN ('pending','in_progress')\nORDER BY wl.code\nLIMIT 10;\n\n-- Saldo no endereço M03-01-01 (locationId 390001)\nSELECT i.id, i.locationId, i.labelCode, i.uniqueCode, i.status, i.quantity,\n       wl.code AS locationCode\nFROM inventory i\nJOIN warehouseLocations wl ON wl.id = i.locationId\nWHERE i.labelCode = '44306022D14LA124' AND i.status = 'available';\n",
+  "rows": [
+    {
+      "invId": "120001",
+      "status": "in_progress",
+      "invLocId": "120001",
+      "locationId": "390001",
+      "locStatus": "pending",
+      "locationCode": "M03-01-01",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "invId": "120001",
+      "status": "in_progress",
+      "invLocId": "120002",
+      "locationId": "390002",
+      "locStatus": "pending",
+      "locationCode": "M03-01-02",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "invId": "120001",
+      "status": "in_progress",
+      "invLocId": "120003",
+      "locationId": "390003",
+      "locStatus": "pending",
+      "locationCode": "M03-01-03",
+      "zoneCode": "STORAGE"
+    },
+    {
+      "invId": "id",
+      "status": "locationId",
+      "invLocId": "labelCode",
+      "locationId": "uniqueCode",
+      "locStatus": "status",
+      "locationCode": "quantity",
+      "zoneCode": "locationCode"
+    },
+    {
+      "invId": "1920001",
+      "status": "390001",
+      "invLocId": "44306022D14LA124",
+      "locationId": "443060-22D14LA124",
+      "locStatus": "available",
+      "locationCode": "280",
+      "zoneCode": "M03-01-01"
+    }
+  ],
+  "messages": [],
+  "stdout": "invId\tstatus\tinvLocId\tlocationId\tlocStatus\tlocationCode\tzoneCode\n120001\tin_progress\t120001\t390001\tpending\tM03-01-01\tSTORAGE\n120001\tin_progress\t120002\t390002\tpending\tM03-01-02\tSTORAGE\n120001\tin_progress\t120003\t390003\tpending\tM03-01-03\tSTORAGE\nid\tlocationId\tlabelCode\tuniqueCode\tstatus\tquantity\tlocationCode\n1920001\t390001\t44306022D14LA124\t443060-22D14LA124\tavailable\t280\tM03-01-01\n",
+  "stderr": "",
+  "execution_time_ms": 276
+}

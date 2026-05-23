@@ -1,0 +1,1 @@
+ALTER TABLE `receivingOrders` MODIFY COLUMN `status` enum('scheduled','in_progress','in_quarantine','addressing','completed','cancelled','pending_unit_setup') NOT NULL DEFAULT 'scheduled';

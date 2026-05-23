@@ -1,0 +1,40 @@
+{
+  "query": "\n-- Distribuição de tenantId em inventory\nSELECT 'inventory' AS tabela, tenantId, COUNT(*) AS qtd\nFROM inventory\nGROUP BY tenantId\nORDER BY tenantId;\n\n-- Distribuição de tenantId em inventoryMovements\nSELECT 'inventoryMovements' AS tabela, tenantId, COUNT(*) AS qtd\nFROM inventoryMovements\nGROUP BY tenantId\nORDER BY tenantId;\n\n-- Total geral\nSELECT 'inventory_total' AS tabela, COUNT(*) AS total FROM inventory;\nSELECT 'inventoryMovements_total' AS tabela, COUNT(*) AS total FROM inventoryMovements;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute \n-- Distribuição de tenantId em inventory\nSELECT 'inventory' AS tabela, tenantId, COUNT(*) AS qtd\nFROM inventory\nGROUP BY tenantId\nORDER BY tenantId;\n\n-- Distribuição de tenantId em inventoryMovements\nSELECT 'inventoryMovements' AS tabela, tenantId, COUNT(*) AS qtd\nFROM inventoryMovements\nGROUP BY tenantId\nORDER BY tenantId;\n\n-- Total geral\nSELECT 'inventory_total' AS tabela, COUNT(*) AS total FROM inventory;\nSELECT 'inventoryMovements_total' AS tabela, COUNT(*) AS total FROM inventoryMovements;\n",
+  "rows": [
+    {
+      "tabela": "inventory",
+      "tenantId": "30001",
+      "qtd": "79"
+    },
+    {
+      "tabela": "inventory",
+      "tenantId": "30002",
+      "qtd": "32"
+    },
+    {
+      "tabela": "tabela",
+      "tenantId": "tenantId",
+      "qtd": "qtd"
+    },
+    {
+      "tabela": "inventoryMovements",
+      "tenantId": "30001",
+      "qtd": "13"
+    },
+    {
+      "tabela": "inventoryMovements",
+      "tenantId": "30002",
+      "qtd": "5"
+    }
+  ],
+  "messages": [
+    "tabela\ttotal",
+    "inventory_total\t111",
+    "tabela\ttotal",
+    "inventoryMovements_total\t18"
+  ],
+  "stdout": "tabela\ttenantId\tqtd\ninventory\t30001\t79\ninventory\t30002\t32\ntabela\ttenantId\tqtd\ninventoryMovements\t30001\t13\ninventoryMovements\t30002\t5\ntabela\ttotal\ninventory_total\t111\ntabela\ttotal\ninventoryMovements_total\t18\n",
+  "stderr": "",
+  "execution_time_ms": 69
+}

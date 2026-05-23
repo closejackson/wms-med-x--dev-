@@ -1,0 +1,1 @@
+ALTER TABLE `pickingOrders` ADD `isLegacyImported` boolean DEFAULT false NOT NULL;

@@ -1,0 +1,22 @@
+{
+  "query": "SELECT DISTINCT tenantId, COUNT(*) as total FROM inventoryMovements WHERE DATE(createdAt) = '2026-05-20' GROUP BY tenantId; SELECT DISTINCT wl.tenantId, COUNT(*) as total FROM warehouseLocations wl JOIN inventoryMovements im ON im.fromLocationId = wl.id OR im.toLocationId = wl.id WHERE DATE(im.createdAt) = '2026-05-20' GROUP BY wl.tenantId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT DISTINCT tenantId, COUNT(*) as total FROM inventoryMovements WHERE DATE(createdAt) = '2026-05-20' GROUP BY tenantId; SELECT DISTINCT wl.tenantId, COUNT(*) as total FROM warehouseLocations wl JOIN inventoryMovements im ON im.fromLocationId = wl.id OR im.toLocationId = wl.id WHERE DATE(im.createdAt) = '2026-05-20' GROUP BY wl.tenantId;",
+  "rows": [
+    {
+      "tenantId": "30002",
+      "total": "8"
+    },
+    {
+      "tenantId": "tenantId",
+      "total": "total"
+    },
+    {
+      "tenantId": "30002",
+      "total": "12"
+    }
+  ],
+  "messages": [],
+  "stdout": "tenantId\ttotal\n30002\t8\ntenantId\ttotal\n30002\t12\n",
+  "stderr": "",
+  "execution_time_ms": 279
+}

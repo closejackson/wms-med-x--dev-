@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, name FROM tenants ORDER BY id LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT id, name FROM tenants ORDER BY id LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Global Admin"
+    },
+    {
+      "id": "30001",
+      "name": "(30001) AESC - Mãe de Deus"
+    },
+    {
+      "id": "30002",
+      "name": "(30002) AESC - Mãe de Deus - UCG"
+    },
+    {
+      "id": "40001",
+      "name": "Hapvida Saúde"
+    },
+    {
+      "id": "120001",
+      "name": "Santa Casa de Misericórdia"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\n1\tGlobal Admin\n30001\t(30001) AESC - Mãe de Deus\n30002\t(30002) AESC - Mãe de Deus - UCG\n40001\tHapvida Saúde\n120001\tSanta Casa de Misericórdia\n",
+  "stderr": "",
+  "execution_time_ms": 262
+}

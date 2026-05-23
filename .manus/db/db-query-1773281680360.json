@@ -1,0 +1,16 @@
+{
+  "query": "SELECT po.orderNumber, po.customerOrderNumber, COUNT(pa.id) as allocations_count, SUM(pa.quantity) as total_qty FROM pickingOrders po JOIN pickingAllocations pa ON pa.pickingOrderId = po.id WHERE po.isLegacyImported = 1 GROUP BY po.id, po.orderNumber, po.customerOrderNumber ORDER BY allocations_count DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 44TTARZqZm4zxSK.b3f2309fec40 --database VPbZo3VRZUT62wWDPHVeqm --execute SELECT po.orderNumber, po.customerOrderNumber, COUNT(pa.id) as allocations_count, SUM(pa.quantity) as total_qty FROM pickingOrders po JOIN pickingAllocations pa ON pa.pickingOrderId = po.id WHERE po.isLegacyImported = 1 GROUP BY po.id, po.orderNumber, po.customerOrderNumber ORDER BY allocations_count DESC LIMIT 10;",
+  "rows": [
+    {
+      "orderNumber": "MIG1773278959121",
+      "customerOrderNumber": "5",
+      "allocations_count": "13",
+      "total_qty": "4274"
+    }
+  ],
+  "messages": [],
+  "stdout": "orderNumber\tcustomerOrderNumber\tallocations_count\ttotal_qty\nMIG1773278959121\t5\t13\t4274\n",
+  "stderr": "",
+  "execution_time_ms": 665
+}

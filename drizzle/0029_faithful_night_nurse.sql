@@ -1,0 +1,2 @@
+ALTER TABLE `pickingOrders` MODIFY COLUMN `status` enum('pending','validated','in_wave','in_progress','paused','picking','picked','divergent','checking','packed','staged','invoiced','collected','shipped','cancelled') NOT NULL DEFAULT 'pending';--> statement-breakpoint
+ALTER TABLE `pickingOrders` MODIFY COLUMN `shippingStatus` enum('awaiting_invoice','invoice_linked','in_manifest','collected','shipped');
