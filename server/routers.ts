@@ -4228,7 +4228,7 @@ export const appRouter = router({
       }),
 
     // Importar pedidos via Excel
-    importOrders: protectedProcedure
+    importOrders: tenantProcedure
       .input(
         z.object({
           fileData: z.string(), // Base64 do arquivo Excel
@@ -4328,8 +4328,7 @@ export const appRouter = router({
 
               // Validar permissões via assertSameTenant
               try {
-                const { effectiveTenantId: eTid, isGlobalAdmin: isGA } = ctx as any;
-                assertSameTenant(tenant.id, eTid, isGA, "pedido de picking");
+                assertSameTenant(tenant.id, ctx.effectiveTenantId, ctx.isGlobalAdmin, "pedido de picking");
               } catch {
                 results.errors.push({
                   pedido: orderNumber,
