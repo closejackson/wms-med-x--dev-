@@ -30,7 +30,9 @@ import {
   QrCode,
   Activity,
   Home,
+  FileSpreadsheet,
 } from "lucide-react";
+import { ImportDeliveryPointsDialog } from "../components/ImportDeliveryPointsDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ export function IntraHospitalar() {
 
   const [activeTab, setActiveTab] = useState<Tab>("points");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingPoint, setEditingPoint] = useState<{ id: number; name: string; description?: string; floor?: string; isActive: boolean } | null>(null);
 
   // Form state
@@ -165,9 +168,14 @@ export function IntraHospitalar() {
               </Button>
             </Link>
             {activeTab === "points" && (
-              <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Novo Ponto
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white">
+                  <FileSpreadsheet className="h-4 w-4" /> Importar Excel
+                </Button>
+                <Button onClick={() => setShowCreateForm(true)} className="gap-2">
+                  <Plus className="h-4 w-4" /> Novo Ponto
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -477,6 +485,14 @@ export function IntraHospitalar() {
           </div>
         )}
       </div>
+      <ImportDeliveryPointsDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        tenants={tenantsList ?? []}
+        defaultTenantId={!isGlobalAdmin ? (user?.tenantId ?? undefined) : undefined}
+        isGlobalAdmin={isGlobalAdmin}
+        onSuccess={() => refetchPoints()}
+      />
     </DashboardLayout>
   );
 }

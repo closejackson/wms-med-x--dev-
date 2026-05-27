@@ -1063,4 +1063,62 @@ export const intraHospitalRouter = router({
 
       return { ...order, items, totalVolumes: stageRow?.totalVolumes ?? null };
     }),
+
+  // =========================================================================
+  // IMPORTAÇÃO EM LOTE DE PONTOS DE ENTREGA
+  // =========================================================================
+
+  importDeliveryPoints: tenantProcedure
+    .input(z.object({
+      tenantId: z.number().optional(),
+      rows: z.array(z.object({
+        type: z.enum(["DOCK", "PHARMACY"]),
+        name: z.string().min(1).max(255),
+        externalCode: z.string().min(1).max(100),
+        floor: z.string().optional(),
+        description: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const targetTenantId = (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId;
+
+      let created = 0;
+      let skipped = 0;
+      const errors: { row: number; code: string; message: string }[] = [];
+
+      for (let i = 0; i < input.rows.length; i++) {
+        const row = input.rows[i];
+        try {
+          const [existing] = await db
+            .select({ id: deliveryPoints.id })
+            .from(deliveryPoints)
+            .where(and(
+              eq(deliveryPoints.tenantId, targetTenantId),
+              eq(deliveryPoints.externalCode, row.externalCode),
+            ))
+            .limit(1);
+          if (existing) {
+            skipped++;
+            errors.push({ row: i + 2, code: row.externalCode, message: `Código "${row.externalCode}" já existe — ignorado` });
+            continue;
+          }
+          await db.insert(deliveryPoints).values({
+            tenantId: targetTenantId,
+            name: row.name,
+            type: row.type,
+            externalCode: row.externalCode,
+            description: row.description ?? null,
+            floor: row.floor ?? null,
+            isActive: true,
+          });
+          created++;
+        } catch (err: any) {
+          errors.push({ row: i + 2, code: row.externalCode, message: err?.message ?? "Erro desconhecido" });
+        }
+      }
+
+      return { created, skipped, errors };
+    }),
 });
