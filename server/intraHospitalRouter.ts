@@ -598,8 +598,9 @@ export const intraHospitalRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
+      const reportTenantId = (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId;
       // Buscar todos os logs do período
-      const conditions = [eq(deliveryLogs.tenantId, ctx.effectiveTenantId)];
+      const conditions: ReturnType<typeof eq>[] = [eq(pickingOrders.tenantId, reportTenantId)];
       if (input.startDate) conditions.push(sql`${deliveryLogs.timestamp} >= ${input.startDate}`);
       if (input.endDate) conditions.push(sql`${deliveryLogs.timestamp} <= ${input.endDate}`);
       if (input.deliveryPointId) conditions.push(eq(deliveryLogs.deliveryPointId, input.deliveryPointId));
@@ -614,6 +615,7 @@ export const intraHospitalRouter = router({
         })
         .from(deliveryLogs)
         .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
+        .innerJoin(pickingOrders, eq(deliveryLogs.orderId, pickingOrders.id))
         .where(and(...conditions))
         .orderBy(asc(deliveryLogs.orderId), asc(deliveryLogs.timestamp));
 
@@ -698,7 +700,7 @@ export const intraHospitalRouter = router({
         })
         .from(deliveryLogs)
         .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
-        .where(eq(deliveryLogs.tenantId, ctx.effectiveTenantId))
+        .where(eq(deliveryLogs.tenantId, (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId))
         .orderBy(desc(deliveryLogs.timestamp));
 
       // Manter apenas o log mais recente por pedido
@@ -819,7 +821,9 @@ export const intraHospitalRouter = router({
 
       // Montar condições de filtro
       const conditions: ReturnType<typeof eq>[] = [];
-      const tenantCond = tenantFilter(deliveryLogs.tenantId, ctx.effectiveTenantId, ctx.isGlobalAdmin);
+      const effectiveTenant = (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId;
+      const filterTenantId = ctx.isGlobalAdmin && !input.tenantId ? null : effectiveTenant;
+      const tenantCond = tenantFilter(deliveryLogs.tenantId, filterTenantId, ctx.isGlobalAdmin);
       if (tenantCond) conditions.push(tenantCond as ReturnType<typeof eq>);
       if (input.deliveryPointId) conditions.push(eq(deliveryLogs.deliveryPointId, input.deliveryPointId) as ReturnType<typeof eq>);
 

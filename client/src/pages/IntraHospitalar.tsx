@@ -31,6 +31,7 @@ import {
   Activity,
   Home,
   FileSpreadsheet,
+  Filter,
 } from "lucide-react";
 import { ImportDeliveryPointsDialog } from "../components/ImportDeliveryPointsDialog";
 
@@ -64,6 +65,7 @@ export function IntraHospitalar() {
   const [activeTab, setActiveTab] = useState<Tab>("points");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
   const [editingPoint, setEditingPoint] = useState<{ id: number; name: string; description?: string; floor?: string; isActive: boolean } | null>(null);
 
   // Form state
@@ -79,17 +81,25 @@ export function IntraHospitalar() {
   // ─── Queries ────────────────────────────────────────────────────────────────
 
   const { data: points, refetch: refetchPoints, isLoading: loadingPoints } =
-    trpc.intraHospital.listDeliveryPoints.useQuery({ includeInactive: true });
+    trpc.intraHospital.listDeliveryPoints.useQuery({
+      includeInactive: true,
+      tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+    });
 
   const { data: tenantsList } = trpc.tenants.list.useQuery(undefined, {
     enabled: isGlobalAdmin,
   });
 
   const { data: monitoringData, isLoading: loadingMonitoring } =
-    trpc.intraHospital.listOrdersWithStatus.useQuery({ limit: 100 });
+    trpc.intraHospital.listOrdersWithStatus.useQuery({
+      limit: 100,
+      tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+    });
 
   const { data: reportData, isLoading: loadingReport } =
-    trpc.intraHospital.getTransitReport.useQuery({});
+    trpc.intraHospital.getTransitReport.useQuery({
+      tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+    });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -152,6 +162,22 @@ export function IntraHospitalar() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Filtro de cliente — visível apenas para Global Admin */}
+            {isGlobalAdmin && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+                <Filter className="h-4 w-4 text-slate-400" />
+                <select
+                  value={selectedTenantId ?? ""}
+                  onChange={e => setSelectedTenantId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="text-sm text-slate-700 bg-transparent outline-none cursor-pointer min-w-[160px]"
+                >
+                  <option value="">Todos os clientes</option>
+                  {tenantsList?.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Link href="/home">
               <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-2">
                 <Home className="h-4 w-4" /> Home

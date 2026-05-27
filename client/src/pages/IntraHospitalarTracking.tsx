@@ -6,6 +6,7 @@
  * com filtros por status, ponto de entrega, data e número do pedido.
  */
 import { useState, useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
@@ -440,13 +441,19 @@ function SummaryStats({ orders }: { orders: OrderCardProps["order"][] }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function IntraHospitalarTracking() {
+  const { user } = useAuth();
+  const isGlobalAdmin = user?.tenantId === 1;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [pointFilter, setPointFilter] = useState<string>("ALL");
+  const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
+
+  const { data: tenantsList } = trpc.tenants.list.useQuery(undefined, { enabled: isGlobalAdmin });
 
   // Buscar pontos de entrega para o filtro
   const { data: deliveryPoints } = trpc.intraHospital.listDeliveryPoints.useQuery({
     includeInactive: false,
+    tenantId: isGlobalAdmin ? selectedTenantId : undefined,
   });
 
   // Buscar pedidos com checkpoints
@@ -461,6 +468,7 @@ export default function IntraHospitalarTracking() {
       status: statusFilter === "ALL" ? undefined : statusFilter,
       deliveryPointId: pointFilter !== "ALL" ? Number(pointFilter) : undefined,
       limit: 200,
+      tenantId: isGlobalAdmin ? selectedTenantId : undefined,
     },
     {
       refetchInterval: 30_000, // atualiza a cada 30s
@@ -526,6 +534,23 @@ export default function IntraHospitalarTracking() {
             <Filter className="h-3 w-3" /> Filtros
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Filtro de cliente — apenas Global Admin */}
+            {isGlobalAdmin && (
+              <Select
+                value={selectedTenantId ? String(selectedTenantId) : "ALL"}
+                onValueChange={v => setSelectedTenantId(v === "ALL" ? undefined : Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos os clientes</SelectItem>
+                  {tenantsList?.map(t => (
+                    <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {/* Busca por número */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
