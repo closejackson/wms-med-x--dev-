@@ -702,7 +702,9 @@ export const intraHospitalRouter = router({
         })
         .from(deliveryLogs)
         .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
-        .where(eq(deliveryLogs.tenantId, (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId))
+        .where(ctx.isGlobalAdmin && !input.tenantId
+          ? undefined
+          : eq(deliveryLogs.tenantId, (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId))
         .orderBy(desc(deliveryLogs.timestamp));
 
       // Manter apenas o log mais recente por pedido
