@@ -510,8 +510,24 @@ export const appRouter = router({
           supplierCode: suppCode,
         } as any);
 
-        const productId = (inserted as any).insertId;
-
+        let productId = (inserted as any).insertId;
+        // Se insertId = 0, o produto já existia — buscar pelo sku ou internalCode
+        if (!productId) {
+          const existing = await db.select({ id: products.id })
+            .from(products)
+            .where(eq(products.sku, sku))
+            .limit(1);
+          if (existing.length > 0) {
+            productId = existing[0].id;
+          } else if (normInternal) {
+            const byInternal = await db.select({ id: products.id })
+              .from(products)
+              .where(eq(products.internalCode, normInternal))
+              .limit(1);
+            if (byInternal.length > 0) productId = byInternal[0].id;
+          }
+          if (!productId) throw new Error("Falha ao criar produto: não foi possível obter o ID após inserção.");
+        }
         // Salvar códigos por tenant em productTenantMappings
         if (tenantId) {
           await db.insert(productTenantMappings).values({
