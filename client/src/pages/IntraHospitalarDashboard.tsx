@@ -6,7 +6,7 @@
  * e distribuição de chegadas por hora.
  * Atualização automática a cada 30 segundos.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import {
   ArrowLeft,
@@ -35,10 +35,12 @@ import {
   Cell,
 } from "recharts";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -169,26 +171,43 @@ function AlertRow({
 
 export default function IntraHospitalarDashboard() {
   const [slaMinutes, setSlaMinutes] = useState(120);
+  const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
+
+  const { user } = useAuth();
+  const isGlobalAdmin = user?.tenantId === 1;
+
+  // Busca lista de tenants (apenas para Global Admin)
+  const tenantsQuery = trpc.tenants.list.useQuery(
+    undefined,
+    { enabled: isGlobalAdmin }
+  );
+  const tenants = tenantsQuery.data ?? [];
+
+  // tenantId efetivo para as queries de analytics
+  const queryTenantId = useMemo(() => {
+    if (!isGlobalAdmin) return undefined;
+    return selectedTenantId;
+  }, [isGlobalAdmin, selectedTenantId]);
 
   const refetchInterval = 30_000; // 30 segundos
 
   const wipQuery = trpc.intraHospitalarAnalytics.getWipStatus.useQuery(
-    {},
+    { tenantId: queryTenantId },
     { refetchInterval }
   );
 
   const leadTimeQuery = trpc.intraHospitalarAnalytics.getLeadTimeStats.useQuery(
-    {},
+    { tenantId: queryTenantId },
     { refetchInterval }
   );
 
   const alertsQuery = trpc.intraHospitalarAnalytics.getAlerts.useQuery(
-    { slaMinutes },
+    { slaMinutes, tenantId: queryTenantId },
     { refetchInterval }
   );
 
   const arrivalsQuery = trpc.intraHospitalarAnalytics.getArrivalsByHour.useQuery(
-    { days: 30 },
+    { days: 30, tenantId: queryTenantId },
     { refetchInterval }
   );
 
@@ -244,6 +263,25 @@ export default function IntraHospitalarDashboard() {
               </div>
             </div>
           </div>
+          {/* Filtro de cliente — visível apenas para Global Admin */}
+          {isGlobalAdmin && (
+            <Select
+              value={selectedTenantId !== undefined ? String(selectedTenantId) : "all"}
+              onValueChange={(v) => setSelectedTenantId(v === "all" ? undefined : Number(v))}
+            >
+              <SelectTrigger className="w-48 h-8 text-xs">
+                <SelectValue placeholder="Todos os clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os clientes</SelectItem>
+                {tenants.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             variant="outline"
             size="sm"
