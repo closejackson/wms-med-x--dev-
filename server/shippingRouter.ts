@@ -32,6 +32,24 @@ import { eq, and, or, sql, desc, asc, inArray, isNull, isNotNull } from "drizzle
 import { updateLocationStatus } from "./modules/locations";
 import { loadConversionContext, resolveUnit, applyConversion } from "./unitConversionRouter.js";
 
+// Unidades de embalagem que podem ser convertidas via unitsPerBox como fallback
+const PACKAGE_UNITS = new Set([
+  "CX","CXA","CAIXA","BOX",
+  "PCT","PACOTE","PCK","PACK",
+  "FD","FARDO","BDL","BUNDLE",
+  "KIT","BLISTER","BLS",
+  "AMPOLA","AMP",
+  "FR","FRASCO",
+  "TB","TUBO",
+  "RL","ROLO",
+  "SAC","SACO",
+  "ENV","ENVELOPE",
+  "BISNAGA","BSG",
+  "POTE","PT",
+  "LATA","LT",
+  "GALAO","GL",
+]);
+
 export const shippingRouter = router({
   // ============================================================================
   // PEDIDOS - Fila de Expedição
@@ -486,7 +504,7 @@ export const shippingRouter = router({
             console.log(`[Shipping UOM] SKU ${sku} (sem lote): ${nfeQtd} ${nfeUnitCode} × ${factor} = ${nfeQtdNorm} UN`);
           } else {
             // Fator não cadastrado: tentar fallback com unitsPerBox do produto quando unidade for CX/CAIXA
-            const isCaixaUnit = nfeUnitCode === "CX" || nfeUnitCode === "CXA" || nfeUnitCode === "CAIXA" || nfeUnitCode === "BOX";
+            const isCaixaUnit = PACKAGE_UNITS.has(nfeUnitCode);
             const unitsPerBox = skuItems[0]?.unitsPerBox;
             if (isCaixaUnit && unitsPerBox) {
               nfeQtdNorm = nfeQtd * unitsPerBox;
@@ -775,7 +793,7 @@ export const shippingRouter = router({
           const strategy = uomCtx.roundingMap.get(convKey) ?? "round";
           if (factor) { nfeQtdBase = applyConversion(nfeQtd, factor, strategy); }
           else {
-            const isCaixaUnit2 = ["CX","CXA","CAIXA","BOX"].includes(nfeUnitResolved);
+            const isCaixaUnit2 = PACKAGE_UNITS.has(nfeUnitResolved);
             if (isCaixaUnit2 && firstItem.unitsPerBox) {
               nfeQtdBase = nfeQtd * firstItem.unitsPerBox;
             } else {
@@ -810,7 +828,7 @@ export const shippingRouter = router({
         const nfeUnitRaw2 = (nfeProdSample2 as any)?.unidade ?? "UN";
         const nfeUnitTribRaw2 = (nfeProdSample2 as any)?.unidadeTributavel ?? null;
         const { resolvedCode: nfeUnitCode2 } = resolveUnit(nfeUnitTribRaw2, nfeUnitRaw2, uomCtx.aliasMap);
-        const isCaixaUnit3 = ["CX","CXA","CAIXA","BOX"].includes(nfeUnitCode2);
+        const isCaixaUnit3 = PACKAGE_UNITS.has(nfeUnitCode2);
         const convKey2 = skuItems[0]?.productId ? `${skuItems[0].productId}:${nfeUnitCode2}` : null;
         const factor2 = convKey2 ? uomCtx.conversionMap.get(convKey2) : undefined;
         let nfeQtdNorm2 = nfeQtd;
