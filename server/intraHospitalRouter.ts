@@ -75,8 +75,10 @@ export const intraHospitalRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
       const conditions = [];
-      // Global Admin sem tenantId específico no input: visão global (sem filtro de tenant)
-      const filterTenantId = ctx.isGlobalAdmin && !input.tenantId ? null : ctx.effectiveTenantId;
+      // Global Admin: usa input.tenantId se fornecido; sem tenantId = visão global (null = sem filtro)
+      const filterTenantId = ctx.isGlobalAdmin
+        ? (input.tenantId ?? null)
+        : ctx.effectiveTenantId;
       const filter = tenantFilter(deliveryPoints.tenantId, filterTenantId, ctx.isGlobalAdmin);
       if (filter) conditions.push(filter);
       if (input.type) conditions.push(eq(deliveryPoints.type, input.type));
