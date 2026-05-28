@@ -1537,6 +1537,7 @@ export const deliveryLogs = mysqlTable("deliveryLogs", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   userId: int("userId"), // FK para users.id (quem registrou)
   notes: text("notes"), // Observações livres (ex: "Caixa avariada")
+  waveNumber: varchar("waveNumber", { length: 50 }), // Romaneio (pickingWaves.waveNumber)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   tenantIdIdx: index("deliveryLogs_tenantId_idx").on(table.tenantId),

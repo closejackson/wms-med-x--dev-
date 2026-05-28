@@ -1,0 +1,1 @@
+ALTER TABLE `deliveryLogs` ADD `waveNumber` varchar(50);

@@ -294,4 +294,79 @@ export const intraHospitalarAnalyticsRouter = router({
         total: hourMap[h] ?? 0,
       }));
     }),
+
+  /**
+   * getWaveDeliveryTimes
+   * Tempo total de entrega por romaneio (wave):
+   * do primeiro ARRIVED_COMPLEX (chegada na doca) até o último RECEIVE_COMPLETE
+   * (conclusão da última farmácia) dentre todos os pedidos do romaneio.
+   */
+  getWaveDeliveryTimes: tenantProcedure
+    .input(z.object({
+      tenantId: z.number().optional(),
+      days: z.number().min(1).max(90).default(30),
+      limit: z.number().min(1).max(200).default(50),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      const effectiveTenantId = ctx.isGlobalAdmin && input.tenantId
+        ? input.tenantId
+        : ctx.effectiveTenantId;
+
+      if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
+
+      const [rows] = await (db as any).execute(sql.raw(`
+        SELECT
+          pw.id                                    AS waveId,
+          pw.waveNumber                            AS romaneio,
+          COUNT(DISTINCT po.id)                    AS totalOrders,
+          MIN(dl_first.firstArrival)               AS inicioEntrega,
+          MAX(dl_last.lastComplete)                AS fimEntrega,
+          TIMESTAMPDIFF(
+            MINUTE,
+            MIN(dl_first.firstArrival),
+            MAX(dl_last.lastComplete)
+          )                                        AS duracaoMinutos
+        FROM pickingWaves pw
+        JOIN pickingOrders po
+          ON po.waveId = pw.id
+          AND po.tenantId = ${effectiveTenantId}
+        -- Primeira chegada na doca por pedido
+        LEFT JOIN (
+          SELECT orderId, MIN(timestamp) AS firstArrival
+          FROM deliveryLogs
+          WHERE status = 'ARRIVED_COMPLEX'
+            AND tenantId = ${effectiveTenantId}
+          GROUP BY orderId
+        ) dl_first ON dl_first.orderId = po.id
+        -- Última conclusão de recebimento por pedido
+        LEFT JOIN (
+          SELECT orderId, MAX(timestamp) AS lastComplete
+          FROM deliveryLogs
+          WHERE status = 'RECEIVE_COMPLETE'
+            AND tenantId = ${effectiveTenantId}
+          GROUP BY orderId
+        ) dl_last ON dl_last.orderId = po.id
+        WHERE pw.tenantId = ${effectiveTenantId}
+          AND pw.createdAt >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)
+          -- Só romaneios que têm ao menos uma chegada na doca registrada
+          AND dl_first.firstArrival IS NOT NULL
+        GROUP BY pw.id, pw.waveNumber
+        HAVING fimEntrega IS NOT NULL
+        ORDER BY inicioEntrega DESC
+        LIMIT ${input.limit}
+      `));
+
+      return (Array.isArray(rows) ? rows : []).map((r: any) => ({
+        waveId:         Number(r.waveId),
+        romaneio:       String(r.romaneio),
+        totalOrders:    Number(r.totalOrders),
+        inicioEntrega:  r.inicioEntrega ? new Date(r.inicioEntrega) : null,
+        fimEntrega:     r.fimEntrega    ? new Date(r.fimEntrega)    : null,
+        duracaoMinutos: r.duracaoMinutos !== null ? Number(r.duracaoMinutos) : null,
+        duracaoLabel:   r.duracaoMinutos !== null ? formatMinutes(Number(r.duracaoMinutos)) : null,
+      }));
+    }),
 });

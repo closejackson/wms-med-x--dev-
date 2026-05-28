@@ -19,6 +19,7 @@ import {
   deliveryLogs,
   pickingOrders,
   pickingOrderItems,
+  pickingWaves,
   stageChecks,
   products,
   users,
@@ -233,7 +234,12 @@ export const intraHospitalRouter = router({
 
       // Validar pedido
       const [order] = await db
-        .select({ id: pickingOrders.id, tenantId: pickingOrders.tenantId, customerOrderNumber: pickingOrders.customerOrderNumber })
+        .select({
+          id: pickingOrders.id,
+          tenantId: pickingOrders.tenantId,
+          customerOrderNumber: pickingOrders.customerOrderNumber,
+          waveId: pickingOrders.waveId,
+        })
         .from(pickingOrders)
         .where(eq(pickingOrders.id, input.orderId))
         .limit(1);
@@ -326,6 +332,17 @@ export const intraHospitalRouter = router({
         }
       }
 
+      // Buscar waveNumber do romaneio associado ao pedido
+      let waveNumber: string | null = null;
+      if (order.waveId) {
+        const [wave] = await db
+          .select({ waveNumber: pickingWaves.waveNumber })
+          .from(pickingWaves)
+          .where(eq(pickingWaves.id, order.waveId))
+          .limit(1);
+        waveNumber = wave?.waveNumber ?? null;
+      }
+
       // Registrar checkpoint — usa tenantId do pedido, não do usuário logado
       await db.insert(deliveryLogs).values({
         tenantId: order.tenantId,
@@ -335,6 +352,7 @@ export const intraHospitalRouter = router({
         timestamp: input.timestamp ?? new Date(),
         userId: ctx.user.id,
         notes: input.notes ?? null,
+        waveNumber,
       });
 
       return {

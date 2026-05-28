@@ -13,6 +13,7 @@ import { CollectorLayout } from "../../components/CollectorLayout";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
+import { BarcodeScanner } from "../../components/BarcodeScanner";
 import { trpc } from "../../lib/trpc";
 import { toast } from "sonner";
 import {
@@ -30,6 +31,7 @@ import {
   Plus,
   RotateCcw,
   Home,
+  Camera,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ export function CollectorIntraHospitalar() {
     failCount: number;
     results: { orderId: number; orderNumber?: string; success: boolean; error?: string }[];
   } | null>(null);
-
+  const [showScanner, setShowScanner] = useState<"point" | "order" | null>(null);
 
   const orderInputRef = useRef<HTMLInputElement>(null);
   const pointInputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +177,15 @@ export function CollectorIntraHospitalar() {
     });
   };
 
+  const handleCameraScan = useCallback((code: string) => {
+    if (showScanner === "point") {
+      setShowScanner(null);
+      handlePointScan(code);
+    } else if (showScanner === "order") {
+      handleOrderScan(code);
+    }
+  }, [showScanner, handlePointScan, handleOrderScan]);
+
   const handleReset = () => {
     setScreen("select_point");
     setSelectedPoint(null);
@@ -197,6 +208,14 @@ export function CollectorIntraHospitalar() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <>
+    {/* ── Scanner de câmera (overlay fullscreen) ── */}
+    {showScanner && (
+      <BarcodeScanner
+        onScan={handleCameraScan}
+        onClose={() => setShowScanner(null)}
+      />
+    )}
     <CollectorLayout
       title="Rastreio Intra-Hospitalar"
       headerActions={
@@ -231,15 +250,26 @@ export function CollectorIntraHospitalar() {
               </p>
 
               {/* Campo de scan */}
-              <Input
-                ref={pointInputRef}
-                value={pointInput}
-                onChange={e => setPointInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handlePointScan(pointInput)}
-                placeholder="Bipe o QR Code do ponto..."
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 mb-3"
-                autoComplete="off"
-              />
+              <div className="flex gap-2 mb-3">
+                <Input
+                  ref={pointInputRef}
+                  value={pointInput}
+                  onChange={e => setPointInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handlePointScan(pointInput)}
+                  placeholder="Bipe o QR Code do ponto..."
+                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 flex-1"
+                  autoComplete="off"
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600 shrink-0"
+                  onClick={() => setShowScanner("point")}
+                  title="Usar câmera"
+                >
+                  <Camera className="h-5 w-5" />
+                </Button>
+              </div>
               {pointInput && (
                 <Button
                   className="w-full mb-4"
@@ -376,6 +406,14 @@ export function CollectorIntraHospitalar() {
                   className="flex-1"
                   autoComplete="off"
                 />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowScanner("order")}
+                  title="Usar câmera"
+                >
+                  <Camera className="h-5 w-5" />
+                </Button>
                 <Button
                   size="icon"
                   onClick={() => handleOrderScan(orderInput)}
@@ -540,5 +578,6 @@ export function CollectorIntraHospitalar() {
 
       </div>
     </CollectorLayout>
+    </>
   );
 }
