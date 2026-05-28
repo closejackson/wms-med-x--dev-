@@ -2090,7 +2090,10 @@ Motivo do cancelamento: ${input.reason}`.trim() : order[0].notes,
     }),
 
   intraArrivalsByHour: publicProcedure
-    .input(z.object({ days: z.number().min(1).max(90).default(30) }))
+    .input(z.object({
+      days: z.number().min(1).max(90).default(30),
+      tzOffsetMinutes: z.number().min(-840).max(840).default(0),
+    }))
     .query(async ({ input, ctx }) => {
       const session = await getPortalSession(ctx.req);
       const db = await getDb();
@@ -2107,13 +2110,17 @@ Motivo do cancelamento: ${input.reason}`.trim() : order[0].notes,
       }
 
       const tid = session.tenantId;
+      const sign = input.tzOffsetMinutes >= 0 ? '+' : '-';
+      const absMin = Math.abs(input.tzOffsetMinutes);
+      const tzStr = `${sign}${String(Math.floor(absMin / 60)).padStart(2, '0')}:${String(absMin % 60).padStart(2, '0')}`;
+
       const [rows] = await (db as any).execute(sql.raw(`
-        SELECT HOUR(timestamp) AS hora, COUNT(*) AS total
+        SELECT HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}')) AS hora, COUNT(*) AS total
         FROM deliveryLogs
         WHERE tenantId = ${tid}
           AND status = 'ARRIVED_COMPLEX'
           AND timestamp >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)
-        GROUP BY HOUR(timestamp)
+        GROUP BY HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}'))
         ORDER BY hora ASC
       `));
       const hourMap: Record<number, number> = {};

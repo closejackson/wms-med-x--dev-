@@ -118,7 +118,7 @@ export function ClientPortalIntraHospitalar() {
   );
 
   const arrivalsQuery = trpc.clientPortal.intraArrivalsByHour.useQuery(
-    { days: dateRange.from ? undefined : 30 },
+    { days: dateRange.from ? undefined : 30, tzOffsetMinutes: -new Date().getTimezoneOffset() },
     { enabled: !!user?.intraHospitalEnabled, retry: false }
   );
 

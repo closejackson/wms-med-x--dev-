@@ -207,7 +207,7 @@ export default function IntraHospitalarDashboard() {
   );
 
   const arrivalsQuery = trpc.intraHospitalarAnalytics.getArrivalsByHour.useQuery(
-    { days: 30, tenantId: queryTenantId },
+    { days: 30, tenantId: queryTenantId, tzOffsetMinutes: -new Date().getTimezoneOffset() },
     { refetchInterval }
   );
 
