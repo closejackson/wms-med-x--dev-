@@ -178,8 +178,8 @@ export function CollectorIntraHospitalar() {
   };
 
   const handleCameraScan = useCallback((code: string) => {
+    setShowScanner(null);
     if (showScanner === "point") {
-      setShowScanner(null);
       handlePointScan(code);
     } else if (showScanner === "order") {
       handleOrderScan(code);
