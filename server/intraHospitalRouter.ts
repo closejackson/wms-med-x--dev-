@@ -275,7 +275,7 @@ export const intraHospitalRouter = router({
         .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
         .where(and(
           eq(deliveryLogs.orderId, input.orderId),
-          eq(deliveryLogs.tenantId, ctx.effectiveTenantId),
+          eq(deliveryLogs.tenantId, order.tenantId),
         ))
         .orderBy(desc(deliveryLogs.timestamp));
 
@@ -326,9 +326,9 @@ export const intraHospitalRouter = router({
         }
       }
 
-      // Registrar checkpoint
+      // Registrar checkpoint — usa tenantId do pedido, não do usuário logado
       await db.insert(deliveryLogs).values({
-        tenantId: ctx.effectiveTenantId,
+        tenantId: order.tenantId,
         orderId: input.orderId,
         deliveryPointId: input.deliveryPointId,
         status: input.status,
@@ -403,7 +403,7 @@ export const intraHospitalRouter = router({
             .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
             .where(and(
               eq(deliveryLogs.orderId, order.id),
-              eq(deliveryLogs.tenantId, ctx.effectiveTenantId),
+              eq(deliveryLogs.tenantId, order.tenantId),
             ))
             .orderBy(desc(deliveryLogs.timestamp));
 
@@ -459,7 +459,7 @@ export const intraHospitalRouter = router({
           }
 
           await db.insert(deliveryLogs).values({
-            tenantId: ctx.effectiveTenantId,
+            tenantId: order.tenantId,
             orderId: order.id,
             deliveryPointId: input.deliveryPointId,
             status: input.status,
@@ -536,7 +536,7 @@ export const intraHospitalRouter = router({
         .leftJoin(users, eq(deliveryLogs.userId, users.id))
         .where(and(
           eq(deliveryLogs.orderId, input.orderId),
-          eq(deliveryLogs.tenantId, ctx.effectiveTenantId),
+          eq(deliveryLogs.tenantId, order.tenantId),
         ))
         .orderBy(asc(deliveryLogs.timestamp));
 
