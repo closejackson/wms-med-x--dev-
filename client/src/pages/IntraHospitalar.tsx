@@ -151,7 +151,7 @@ export function IntraHospitalar() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
               <Activity className="h-6 w-6 text-blue-600" />
@@ -161,7 +161,7 @@ export function IntraHospitalar() {
               Monitorize a jornada dos pedidos dentro do complexo hospitalar.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Filtro de cliente — visível apenas para Global Admin */}
             {isGlobalAdmin && (
               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
@@ -169,7 +169,7 @@ export function IntraHospitalar() {
                 <select
                   value={selectedTenantId ?? ""}
                   onChange={e => setSelectedTenantId(e.target.value ? Number(e.target.value) : undefined)}
-                  className="text-sm text-slate-700 bg-transparent outline-none cursor-pointer min-w-[160px]"
+                  className="text-sm text-slate-700 bg-transparent outline-none cursor-pointer min-w-[140px] max-w-[180px]"
                 >
                   <option value="">Todos os clientes</option>
                   {tenantsList?.map(t => (
@@ -179,27 +179,32 @@ export function IntraHospitalar() {
               </div>
             )}
             <Link href="/home">
-              <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-2">
-                <Home className="h-4 w-4" /> Home
+              <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-1">
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Home</span>
               </Button>
             </Link>
             <Link href="/intra-hospitalar/rastreabilidade">
-              <Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-2">
-                <Activity className="h-4 w-4" /> Rastreabilidade
+              <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-1">
+                <Activity className="h-4 w-4" />
+                <span className="hidden sm:inline">Rastreabilidade</span>
               </Button>
             </Link>
             <Link href="/intra-hospitalar/dashboard">
-              <Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-                <BarChart2 className="h-4 w-4" /> Performance
+              <Button variant="outline" size="sm" className="gap-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50">
+                <BarChart2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Performance</span>
               </Button>
             </Link>
             {activeTab === "points" && (
               <>
-                <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white">
-                  <FileSpreadsheet className="h-4 w-4" /> Importar Excel
+                <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="gap-1 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span className="hidden sm:inline">Importar Excel</span>
                 </Button>
-                <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-                  <Plus className="h-4 w-4" /> Novo Ponto
+                <Button size="sm" onClick={() => setShowCreateForm(true)} className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Novo Ponto</span>
                 </Button>
               </>
             )}
