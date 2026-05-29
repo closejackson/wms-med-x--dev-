@@ -8,6 +8,8 @@ interface BarcodeScannerProps {
   onScan: (code: string) => void;
   onClose: () => void;
   supportedFormats?: Html5QrcodeSupportedFormats[];
+  /** Usar layout otimizado para código de barras linear (NF-e, romaneio) */
+  linearBarcode?: boolean;
 }
 
 export function BarcodeScanner({ 
@@ -20,7 +22,8 @@ export function BarcodeScanner({
     Html5QrcodeSupportedFormats.CODE_39,
     Html5QrcodeSupportedFormats.QR_CODE,
     Html5QrcodeSupportedFormats.DATA_MATRIX,
-  ]
+  ],
+  linearBarcode = false,
 }: BarcodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,13 +61,14 @@ export function BarcodeScanner({
       const html5QrCode = new Html5Qrcode(qrCodeRegionId);
       scannerRef.current = html5QrCode;
 
+      // Para código de barras linear (NF-e): área larga e baixa, alta resolução
+      const scanConfig = linearBarcode
+        ? { fps: 10, qrbox: { width: 320, height: 100 }, aspectRatio: 1.777 }
+        : { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+
       await html5QrCode.start(
         { facingMode }, // Câmera traseira ou frontal
-        {
-          fps: 30, // Aumentado para melhor performance
-          qrbox: { width: 280, height: 280 },
-          aspectRatio: 1.0,
-        },
+        scanConfig,
         (decodedText, decodedResult) => {
           // Debounce: evitar leituras duplicadas em menos de 2 segundos
           const now = Date.now();
@@ -212,6 +216,12 @@ export function BarcodeScanner({
                 <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-green-400 rounded-bl-lg" />
                 {/* Canto inferior direito */}
                 <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-green-400 rounded-br-lg" />
+                {/* Dica para código linear */}
+                {linearBarcode && (
+                  <div className="absolute -bottom-8 left-0 right-0 text-center">
+                    <p className="text-xs text-yellow-300">Alinhe o código de barras horizontalmente</p>
+                  </div>
+                )}
                 
                 {/* Linha de scan animada */}
                 <div className="absolute inset-0 overflow-hidden">
@@ -312,7 +322,7 @@ export function BarcodeScanner({
       {/* Formatos Suportados (Debug Info) */}
       <div className="w-full px-4 pb-2 text-center">
         <p className="text-xs text-white/40">
-          Formatos: EAN-13, EAN-8, Code 128, Code 39, QR Code, Data Matrix
+          {linearBarcode ? "Otimizado para NF-e (Code 128)" : "Formatos: EAN-13, EAN-8, Code 128, Code 39, QR Code, Data Matrix"}
         </p>
       </div>
     </div>

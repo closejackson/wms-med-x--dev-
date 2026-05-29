@@ -264,6 +264,7 @@ export function CollectorIntraHospitalar() {
       <BarcodeScanner
         onScan={handleCameraScan}
         onClose={() => setShowScanner(null)}
+        linearBarcode={showScanner === "nf"}
       />
     )}
     <CollectorLayout
