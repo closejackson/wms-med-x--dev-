@@ -13,7 +13,7 @@ import { CollectorLayout } from "../../components/CollectorLayout";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
-import { BarcodeScanner } from "../../components/BarcodeScanner";
+import { BarcodeScannerZXing } from "../../components/BarcodeScannerZXing";
 import { trpc } from "../../lib/trpc";
 import { toast } from "sonner";
 import {
@@ -261,7 +261,7 @@ export function CollectorIntraHospitalar() {
     <>
     {/* ── Scanner de câmera (overlay fullscreen) ── */}
     {showScanner && (
-      <BarcodeScanner
+      <BarcodeScannerZXing
         onScan={handleCameraScan}
         onClose={() => setShowScanner(null)}
         linearBarcode={showScanner === "nf"}
