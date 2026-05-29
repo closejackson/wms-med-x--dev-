@@ -211,6 +211,11 @@ export default function IntraHospitalarDashboard() {
     { refetchInterval }
   );
 
+  const waveDeliveryQuery = trpc.intraHospitalarAnalytics.getWaveDeliveryTimes.useQuery(
+    { tenantId: queryTenantId, days: 30, limit: 50 },
+    { refetchInterval }
+  );
+
   const isLoading = wipQuery.isLoading || leadTimeQuery.isLoading;
 
   const wip = wipQuery.data;
@@ -226,11 +231,22 @@ export default function IntraHospitalarDashboard() {
     ? Math.round((alerts.length / wip.total) * 100)
     : 0;
 
+  const waveChartData = useMemo(() => {
+    return (waveDeliveryQuery.data ?? []).map(w => ({
+      label: w.romaneio,
+      data: w.inicioEntrega ? new Date(w.inicioEntrega).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "",
+      horas: w.duracaoMinutos !== null ? Math.round((w.duracaoMinutos / 60) * 100) / 100 : null,
+      duracaoLabel: w.duracaoLabel,
+      totalOrders: w.totalOrders,
+    }));
+  }, [waveDeliveryQuery.data]);
+
   function handleRefresh() {
     wipQuery.refetch();
     leadTimeQuery.refetch();
     alertsQuery.refetch();
     arrivalsQuery.refetch();
+    waveDeliveryQuery.refetch();
   }
 
   return (
@@ -521,6 +537,61 @@ export default function IntraHospitalarDashboard() {
                     fill="url(#colorArrivals)"
                   />
                 </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Gráfico: Tempo Total por Romaneio ── */}
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-violet-500" />
+              Tempo Total de Entrega por Romaneio (últimos 30 dias)
+            </CardTitle>
+            <p className="text-xs text-slate-400 mt-0.5">Da chegada do 1º pedido na doca até a conclusão do último na farmácia</p>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {waveDeliveryQuery.isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : waveChartData.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-slate-400 text-sm">
+                Nenhum romaneio concluído nos últimos 30 dias.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={waveChartData}
+                  margin={{ top: 4, right: 8, left: 0, bottom: 24 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="data"
+                    tick={{ fontSize: 10, fill: "#64748b" }}
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={40}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    tickFormatter={(v: number) => `${v}h`}
+                    label={{ value: "Horas", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 11, fill: "#94a3b8" } }}
+                  />
+                  <Tooltip
+                    formatter={(v: number, _: string, entry: any) => [
+                      `${v}h (${entry.payload.duracaoLabel})`,
+                      `Romaneio ${entry.payload.label}`
+                    ]}
+                    labelFormatter={(label: string) => `Data: ${label}`}
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  />
+                  <Bar dataKey="horas" fill="#7c3aed" radius={[4, 4, 0, 0]}>
+                    {waveChartData.map((_, idx) => (
+                      <Cell key={idx} fill={idx % 2 === 0 ? "#7c3aed" : "#a78bfa"} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
