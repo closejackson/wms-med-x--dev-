@@ -32,6 +32,8 @@ import {
   RotateCcw,
   Home,
   Camera,
+  FileText,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,6 +47,19 @@ type Screen =
   | "done";              // Resultado
 
 type ScanMode = "nf" | "order";
+
+interface PendingNfe {
+  invoiceId: number;
+  invoiceKey: string | null;
+  invoiceNumber: string | null;
+  series: string | null;
+  issueDate: Date | string | null;
+  totalValue: number | null;
+  volumes: number | null;
+  totalOrders: number;
+  pendingOrders: number;
+  pendingOrderIds: number[];
+}
 
 interface NfResult {
   type: "nfe" | "order";
@@ -115,6 +130,7 @@ export function CollectorIntraHospitalar() {
   const [scanMode, setScanMode] = useState<ScanMode>("nf");
   const [nfResult, setNfResult] = useState<NfResult | null>(null);
   const [nfLoading, setNfLoading] = useState(false);
+  const [selectedNfe, setSelectedNfe] = useState<PendingNfe | null>(null);
 
   const orderInputRef = useRef<HTMLInputElement>(null);
   const pointInputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +139,12 @@ export function CollectorIntraHospitalar() {
   // ─── Queries ────────────────────────────────────────────────────────────────
 
   const { data: deliveryPoints, isLoading: loadingPoints } = trpc.intraHospital.listDeliveryPoints.useQuery({});
+
+  // NFs pendentes para a doca selecionada (só carrega quando na tela scan_nf)
+  const { data: pendingNfes, isLoading: loadingNfes } = trpc.intraHospital.listPendingNfesForDock.useQuery(
+    { deliveryPointId: selectedPoint?.id ?? 0 },
+    { enabled: screen === "scan_nf" && !!selectedPoint && selectedPoint.type === "DOCK" }
+  );
 
   const batchMut = trpc.intraHospital.batchRegisterCheckpoint.useMutation({
     onSuccess: (data) => {
@@ -231,6 +253,19 @@ export function CollectorIntraHospitalar() {
     }
   }, [showScanner, handlePointScan, handleOrderScan, handleNfScan]);
 
+  const handleSelectNfe = (nfe: PendingNfe) => {
+    setSelectedNfe(nfe);
+    // Pré-preenche pedidos da NF
+    const newOrders = nfe.pendingOrderIds
+      .filter(id => !scannedOrders.some(s => s.orderId === id))
+      .map(id => ({ orderId: id, orderNumber: String(id), status: "pending" as const }));
+    if (newOrders.length > 0) {
+      setScannedOrders(prev => [...prev, ...newOrders]);
+    }
+    toast.success(`NF-e ${nfe.invoiceNumber ?? nfe.invoiceKey?.slice(-6) ?? ""} · ${nfe.pendingOrders} pedido(s) adicionado(s)`);
+    setScreen("confirm");
+  };
+
   const handleReset = () => {
     setScreen("select_point");
     setSelectedPoint(null);
@@ -240,6 +275,7 @@ export function CollectorIntraHospitalar() {
     setPointInput("");
     setNfInput("");
     setNfResult(null);
+    setSelectedNfe(null);
     setScanMode("nf");
     setBatchResult(null);
   };
@@ -453,107 +489,62 @@ export function CollectorIntraHospitalar() {
               <p className="text-slate-400 text-sm">{selectedPoint.name}</p>
             </div>
 
-            {/* Toggle NF / Pedido */}
-            <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
-              <div className="flex gap-2 mb-1">
-                <button
-                  onClick={() => { setScanMode("nf"); setNfInput(""); }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    scanMode === "nf"
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  Bipar NF-e
-                </button>
-                <button
-                  onClick={() => { setScanMode("order"); setNfInput(""); }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    scanMode === "order"
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  Bipar Pedido
-                </button>
+            {/* Lista de NFs pendentes */}
+            {loadingNfes ? (
+              <div className="flex items-center justify-center py-12 text-slate-500">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Carregando NFs...
               </div>
-
-              <p className="text-xs text-slate-500">
-                {scanMode === "nf"
-                  ? "Bipe o código de barras da NF-e (chave de acesso de 44 dígitos). Todos os pedidos vinculados serão registrados automaticamente."
-                  : "Bipe o número do pedido para adicionar individualmente."}
-              </p>
-
-              <div className="flex gap-2">
-                <Input
-                  ref={nfInputRef}
-                  value={nfInput}
-                  onChange={e => setNfInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleNfScan(nfInput)}
-                  placeholder={scanMode === "nf" ? "Chave NF-e (44 dígitos)..." : "Número do pedido..."}
-                  className="flex-1"
-                  autoComplete="off"
-                  disabled={nfLoading}
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setShowScanner("nf")}
-                  title="Usar câmera"
-                  disabled={nfLoading}
-                >
-                  <Camera className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  onClick={() => handleNfScan(nfInput)}
-                  disabled={!nfInput.trim() || nfLoading}
-                >
-                  {nfLoading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                </Button>
+            ) : !pendingNfes || pendingNfes.length === 0 ? (
+              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+                <FileText className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 font-medium">Nenhuma NF pendente</p>
+                <p className="text-slate-400 text-sm mt-1">Todas as NFs expedidas para este cliente já foram registradas na doca.</p>
               </div>
-            </div>
-
-            {/* Pedidos adicionados */}
-            {scannedOrders.length > 0 && (
-              <div className="bg-white rounded-xl border border-slate-200">
-                <div className="p-3 border-b border-slate-100 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-700 flex items-center gap-1">
-                    <Package className="h-4 w-4" />
-                    {scannedOrders.length} pedido(s) para registrar
-                  </p>
-                  {nfResult?.type === "nfe" && nfResult.nfeNumber && (
-                    <span className="text-xs text-slate-400">NF-e {nfResult.nfeNumber}</span>
-                  )}
-                </div>
-                <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
-                  {scannedOrders.map(order => (
-                    <div key={order.orderId} className="flex items-center justify-between p-3">
-                      <span className="text-sm font-mono text-slate-800">#{order.orderNumber}</span>
-                      <button
-                        onClick={() => handleRemoveOrder(order.orderId)}
-                        className="text-slate-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-1">
+                  {pendingNfes.length} NF(s) aguardando chegada
+                </p>
+                {pendingNfes.map(nfe => (
+                  <button
+                    key={nfe.invoiceId}
+                    onClick={() => handleSelectNfe(nfe)}
+                    className="w-full text-left bg-white rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-colors p-4 flex items-start justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                        <span className="font-semibold text-slate-800 text-sm">
+                          NF-e {nfe.invoiceNumber ?? "—"}
+                          {nfe.series ? ` · Série ${nfe.series}` : ""}
+                        </span>
+                      </div>
+                      {nfe.issueDate && (
+                        <p className="text-xs text-slate-500 mb-1">
+                          Emissão: {new Date(nfe.issueDate).toLocaleDateString("pt-BR")}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+                          <Package className="h-3 w-3" />
+                          {nfe.pendingOrders} pedido(s)
+                        </span>
+                        {nfe.volumes && (
+                          <span className="text-xs text-slate-400">{nfe.volumes} vol.</span>
+                        )}
+                        {nfe.totalValue && (
+                          <span className="text-xs text-slate-400">
+                            R$ {nfe.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <ChevronRight className="h-5 w-5 text-slate-400 shrink-0 mt-1" />
+                  </button>
+                ))}
               </div>
             )}
-
-            <Button
-              className="w-full h-14 text-base font-semibold"
-              disabled={scannedOrders.length === 0 || batchMut.isPending}
-              onClick={() => setScreen("confirm")}
-            >
-              <CheckCircle2 className="h-5 w-5 mr-2" />
-              Confirmar {scannedOrders.length} Pedido(s)
-            </Button>
           </div>
         )}
 

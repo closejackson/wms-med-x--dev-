@@ -1255,4 +1255,101 @@ export const intraHospitalRouter = router({
         orders: [{ orderId: order.id, customerOrderNumber: order.customerOrderNumber ?? String(order.id) }],
       };
     }),
+
+  /**
+   * Lista NFs expedidas para o cliente dono da doca que ainda não foram
+   * registradas como ARRIVED_COMPLEX no intra-hospitalar.
+   */
+  listPendingNfesForDock: tenantProcedure
+    .input(z.object({ deliveryPointId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+
+      // 1. Buscar a doca para obter o tenantId do cliente hospitalar
+      const [dock] = await db
+        .select({ id: deliveryPoints.id, tenantId: deliveryPoints.tenantId, name: deliveryPoints.name })
+        .from(deliveryPoints)
+        .where(eq(deliveryPoints.id, input.deliveryPointId))
+        .limit(1);
+      if (!dock) throw new TRPCError({ code: "NOT_FOUND", message: "Doca não encontrada." });
+
+      const clientTenantId = dock.tenantId;
+
+      // 2. Buscar NFs expedidas para esse cliente (customerId = clientTenantId)
+      const expeditedNfes = await db
+        .select({
+          invoiceId: invoices.id,
+          invoiceKey: invoices.invoiceKey,
+          invoiceNumber: invoices.invoiceNumber,
+          series: invoices.series,
+          issueDate: invoices.issueDate,
+          totalValue: invoices.totalValue,
+          volumes: invoices.volumes,
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.customerId, clientTenantId),
+            sql`${invoices.status} IN ('shipped', 'in_manifest', 'linked')`,
+          )
+        )
+        .orderBy(desc(invoices.issueDate));
+
+      if (expeditedNfes.length === 0) return [];
+
+      const invoiceIds = expeditedNfes.map((n) => n.invoiceId);
+
+      // 3. Buscar pedidos vinculados a essas NFs via shipmentManifestItems
+      const manifestItems = await db
+        .select({ invoiceId: shipmentManifestItems.invoiceId, pickingOrderId: shipmentManifestItems.pickingOrderId })
+        .from(shipmentManifestItems)
+        .where(inArray(shipmentManifestItems.invoiceId, invoiceIds));
+
+      // 4. Buscar quais pedidos já têm ARRIVED_COMPLEX registrado
+      const orderIdsWithArrival = manifestItems.length > 0
+        ? await db
+            .select({ orderId: deliveryLogs.orderId })
+            .from(deliveryLogs)
+            .where(
+              and(
+                inArray(deliveryLogs.orderId, manifestItems.map((m) => m.pickingOrderId)),
+                eq(deliveryLogs.status, "ARRIVED_COMPLEX"),
+              )
+            )
+        : [];
+
+      const arrivedOrderIds = new Set(orderIdsWithArrival.map((r) => r.orderId));
+
+      // Agrupar pedidos por invoiceId
+      const ordersByInvoice = new Map<number, number[]>();
+      for (const item of manifestItems) {
+        if (!ordersByInvoice.has(item.invoiceId)) ordersByInvoice.set(item.invoiceId, []);
+        ordersByInvoice.get(item.invoiceId)!.push(item.pickingOrderId);
+      }
+
+      // 5. Retornar apenas NFs com pelo menos um pedido sem ARRIVED_COMPLEX
+      const pending = expeditedNfes.filter((nfe) => {
+        const orders = ordersByInvoice.get(nfe.invoiceId) ?? [];
+        if (orders.length === 0) return true;
+        return orders.some((orderId) => !arrivedOrderIds.has(orderId));
+      });
+
+      return pending.map((nfe) => {
+        const orders = ordersByInvoice.get(nfe.invoiceId) ?? [];
+        const pendingOrders = orders.filter((id) => !arrivedOrderIds.has(id));
+        return {
+          invoiceId: nfe.invoiceId,
+          invoiceKey: nfe.invoiceKey,
+          invoiceNumber: nfe.invoiceNumber,
+          series: nfe.series,
+          issueDate: nfe.issueDate,
+          totalValue: nfe.totalValue ? Number(nfe.totalValue) : null,
+          volumes: nfe.volumes,
+          totalOrders: orders.length,
+          pendingOrders: pendingOrders.length,
+          pendingOrderIds: pendingOrders,
+        };
+      });
+    }),
 });
