@@ -1194,6 +1194,10 @@ export const intraHospitalRouter = router({
         }
 
         const orderIds = manifestItems.map(m => m.pickingOrderId);
+        const orderWhereClause = ctx.isGlobalAdmin && !input.tenantId
+          ? inArray(pickingOrders.id, orderIds)
+          : and(inArray(pickingOrders.id, orderIds), eq(pickingOrders.tenantId, effectiveTenantId));
+
         const orders = await db
           .select({
             id: pickingOrders.id,
@@ -1203,13 +1207,10 @@ export const intraHospitalRouter = router({
             nfeNumber: pickingOrders.nfeNumber,
           })
           .from(pickingOrders)
-          .where(and(
-            inArray(pickingOrders.id, orderIds),
-            eq(pickingOrders.tenantId, effectiveTenantId),
-          ));
+          .where(orderWhereClause);
 
         if (orders.length === 0) {
-          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido do cliente encontrado para a NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
+          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido encontrado para a NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
         }
 
         return {
