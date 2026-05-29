@@ -23,6 +23,8 @@ import {
   stageChecks,
   products,
   users,
+  invoices,
+  shipmentManifestItems,
 } from "../drizzle/schema";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -1160,13 +1162,38 @@ export const intraHospitalRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-      const code = input.code.trim().replace(/\s/g, "");
+      // Remove prefixo "NFe" ou "NFe" que alguns leitores adicionam antes dos 44 dígitos
+      const rawCode = input.code.trim().replace(/\s/g, "");
+      const code = rawCode.replace(/^NFe/i, "");
       const effectiveTenantId = ctx.isGlobalAdmin && input.tenantId ? input.tenantId : ctx.effectiveTenantId;
 
       // Detecta se é chave NF-e (44 dígitos numéricos)
       const isNfeKey = /^\d{44}$/.test(code);
 
       if (isNfeKey) {
+        // Busca via invoices.invoiceKey → shipmentManifestItems.invoiceId → pickingOrders
+        const invoice = await db
+          .select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber })
+          .from(invoices)
+          .where(eq(invoices.invoiceKey, code))
+          .limit(1);
+
+        if (invoice.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: `NF-e ${code.slice(0, 9)}...${code.slice(-6)} não encontrada. Verifique se a NF foi emitida no sistema.` });
+        }
+
+        const manifestItems = await db
+          .select({
+            pickingOrderId: shipmentManifestItems.pickingOrderId,
+          })
+          .from(shipmentManifestItems)
+          .where(eq(shipmentManifestItems.invoiceId, invoice[0].id));
+
+        if (manifestItems.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido vinculado à NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
+        }
+
+        const orderIds = manifestItems.map(m => m.pickingOrderId);
         const orders = await db
           .select({
             id: pickingOrders.id,
@@ -1177,16 +1204,18 @@ export const intraHospitalRouter = router({
           })
           .from(pickingOrders)
           .where(and(
-            eq(pickingOrders.nfeKey, code),
+            inArray(pickingOrders.id, orderIds),
             eq(pickingOrders.tenantId, effectiveTenantId),
           ));
+
         if (orders.length === 0) {
-          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido encontrado para a NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
+          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido do cliente encontrado para a NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
         }
+
         return {
           type: "nfe" as const,
           nfeKey: code,
-          nfeNumber: orders[0].nfeNumber ?? null,
+          nfeNumber: invoice[0].invoiceNumber ?? null,
           orders: orders.map(o => ({
             orderId: o.id,
             customerOrderNumber: o.customerOrderNumber ?? String(o.id),
@@ -1194,7 +1223,7 @@ export const intraHospitalRouter = router({
         };
       }
 
-      // Busca por número do pedido (customerOrderNumber ou ID numérico)
+      // Busca por número do pedido (customerOrderNumber, ID numérico ou waveNumber)
       const numericId = parseInt(code, 10);
       const isNumeric = !isNaN(numericId) && String(numericId) === code;
       let order: { id: number; customerOrderNumber: string | null; tenantId: number; nfeKey: string | null; nfeNumber: string | null } | undefined;
