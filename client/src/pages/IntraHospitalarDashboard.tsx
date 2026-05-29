@@ -241,6 +241,17 @@ export default function IntraHospitalarDashboard() {
     }));
   }, [waveDeliveryQuery.data]);
 
+  // Média do tempo total calculada sobre os romaneios (não por pedido)
+  const avgWaveStats = useMemo(() => {
+    const waves = (waveDeliveryQuery.data ?? []).filter(w => w.duracaoMinutos !== null);
+    if (waves.length === 0) return null;
+    const avg = waves.reduce((sum, w) => sum + (w.duracaoMinutos ?? 0), 0) / waves.length;
+    const h = Math.floor(avg / 60);
+    const m = Math.round(avg % 60);
+    const label = h > 0 ? `${h}h ${m}min` : `${m}min`;
+    return { avgMinutes: avg, label };
+  }, [waveDeliveryQuery.data]);
+
   function handleRefresh() {
     wipQuery.refetch();
     leadTimeQuery.refetch();
@@ -337,11 +348,11 @@ export default function IntraHospitalarDashboard() {
             />
             <KpiCard
               title="Tempo Médio Total"
-              value={lead?.global.avgTotalFormatted ?? "—"}
-              sub="chegada → conclusão"
+              value={avgWaveStats?.label ?? lead?.global.avgTotalFormatted ?? "—"}
+              sub="média por romaneio"
               icon={Timer}
               color="text-indigo-600"
-              loading={leadTimeQuery.isLoading}
+              loading={waveDeliveryQuery.isLoading}
             />
             <KpiCard
               title="Alertas de SLA"
@@ -432,7 +443,7 @@ export default function IntraHospitalarDashboard() {
                     { label: "Permanência na Doca", value: lead?.global.avgDocaFormatted, color: "#3b82f6", icon: Truck },
                     { label: "Trânsito Doca → Farmácia", value: lead?.global.avgTransitoFormatted, color: "#f59e0b", icon: TrendingUp },
                     { label: "Conferência na Farmácia", value: lead?.global.avgConferenciaFormatted, color: "#8b5cf6", icon: Building2 },
-                    { label: "Tempo Total (Chegada → Conclusão)", value: lead?.global.avgTotalFormatted, color: "#10b981", icon: CheckCircle2 },
+                    { label: "Tempo Total (Chegada → Conclusão)", value: avgWaveStats?.label ?? lead?.global.avgTotalFormatted, color: "#10b981", icon: CheckCircle2 },
                   ].map(({ label, value, color, icon: Icon }) => (
                     <div key={label} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
                       <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
