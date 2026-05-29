@@ -1147,4 +1147,82 @@ export const intraHospitalRouter = router({
 
       return { created, skipped, errors };
     }),
+
+  /**
+   * Busca pedidos por chave NF-e (44 dígitos) ou número do pedido.
+   * Retorna todos os pedidos vinculados à NF ou o pedido específico.
+   */
+  getOrdersByNfeKey: tenantProcedure
+    .input(z.object({
+      tenantId: z.number().optional(),
+      code: z.string().min(1),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const code = input.code.trim().replace(/\s/g, "");
+      const effectiveTenantId = ctx.isGlobalAdmin && input.tenantId ? input.tenantId : ctx.effectiveTenantId;
+
+      // Detecta se é chave NF-e (44 dígitos numéricos)
+      const isNfeKey = /^\d{44}$/.test(code);
+
+      if (isNfeKey) {
+        const orders = await db
+          .select({
+            id: pickingOrders.id,
+            customerOrderNumber: pickingOrders.customerOrderNumber,
+            tenantId: pickingOrders.tenantId,
+            nfeKey: pickingOrders.nfeKey,
+            nfeNumber: pickingOrders.nfeNumber,
+          })
+          .from(pickingOrders)
+          .where(and(
+            eq(pickingOrders.nfeKey, code),
+            eq(pickingOrders.tenantId, effectiveTenantId),
+          ));
+        if (orders.length === 0) {
+          throw new TRPCError({ code: "NOT_FOUND", message: `Nenhum pedido encontrado para a NF-e ${code.slice(0, 9)}...${code.slice(-6)}.` });
+        }
+        return {
+          type: "nfe" as const,
+          nfeKey: code,
+          nfeNumber: orders[0].nfeNumber ?? null,
+          orders: orders.map(o => ({
+            orderId: o.id,
+            customerOrderNumber: o.customerOrderNumber ?? String(o.id),
+          })),
+        };
+      }
+
+      // Busca por número do pedido (customerOrderNumber ou ID numérico)
+      const numericId = parseInt(code, 10);
+      const isNumeric = !isNaN(numericId) && String(numericId) === code;
+      let order: { id: number; customerOrderNumber: string | null; tenantId: number; nfeKey: string | null; nfeNumber: string | null } | undefined;
+
+      if (isNumeric) {
+        const [found] = await db
+          .select({ id: pickingOrders.id, customerOrderNumber: pickingOrders.customerOrderNumber, tenantId: pickingOrders.tenantId, nfeKey: pickingOrders.nfeKey, nfeNumber: pickingOrders.nfeNumber })
+          .from(pickingOrders)
+          .where(and(eq(pickingOrders.id, numericId), eq(pickingOrders.tenantId, effectiveTenantId)))
+          .limit(1);
+        order = found;
+      }
+      if (!order) {
+        const [found] = await db
+          .select({ id: pickingOrders.id, customerOrderNumber: pickingOrders.customerOrderNumber, tenantId: pickingOrders.tenantId, nfeKey: pickingOrders.nfeKey, nfeNumber: pickingOrders.nfeNumber })
+          .from(pickingOrders)
+          .where(and(eq(pickingOrders.customerOrderNumber, code), eq(pickingOrders.tenantId, effectiveTenantId)))
+          .limit(1);
+        order = found;
+      }
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: `Pedido "${code}" não encontrado.` });
+      }
+      return {
+        type: "order" as const,
+        nfeKey: order.nfeKey ?? null,
+        nfeNumber: order.nfeNumber ?? null,
+        orders: [{ orderId: order.id, customerOrderNumber: order.customerOrderNumber ?? String(order.id) }],
+      };
+    }),
 });

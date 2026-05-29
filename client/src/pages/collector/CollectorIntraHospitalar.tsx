@@ -39,9 +39,19 @@ import {
 type Screen =
   | "select_point"       // Selecionar ou bipar ponto de entrega
   | "select_status"      // Selecionar o tipo de checkpoint
+  | "scan_nf"            // Bipar NF ou pedido (chegada na doca)
   | "scan_orders"        // Bipar/adicionar pedidos
   | "confirm"            // Confirmar e enviar batch
   | "done";              // Resultado
+
+type ScanMode = "nf" | "order";
+
+interface NfResult {
+  type: "nfe" | "order";
+  nfeKey: string | null;
+  nfeNumber: string | null;
+  orders: { orderId: number; customerOrderNumber: string }[];
+}
 
 type DeliveryStatus =
   | "ARRIVED_COMPLEX"
@@ -100,10 +110,15 @@ export function CollectorIntraHospitalar() {
     failCount: number;
     results: { orderId: number; orderNumber?: string; success: boolean; error?: string }[];
   } | null>(null);
-  const [showScanner, setShowScanner] = useState<"point" | "order" | null>(null);
+  const [showScanner, setShowScanner] = useState<"point" | "order" | "nf" | null>(null);
+  const [nfInput, setNfInput] = useState("");
+  const [scanMode, setScanMode] = useState<ScanMode>("nf");
+  const [nfResult, setNfResult] = useState<NfResult | null>(null);
+  const [nfLoading, setNfLoading] = useState(false);
 
   const orderInputRef = useRef<HTMLInputElement>(null);
   const pointInputRef = useRef<HTMLInputElement>(null);
+  const nfInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -177,14 +192,44 @@ export function CollectorIntraHospitalar() {
     });
   };
 
+  const handleNfScan = useCallback(async (raw: string) => {
+    const value = raw.trim().replace(/\s/g, "");
+    if (!value) return;
+    setNfLoading(true);
+    try {
+      const result = await utils.intraHospital.getOrdersByNfeKey.fetch({ code: value });
+      setNfResult(result);
+      // Pré-preenche a lista de pedidos
+      const newOrders = result.orders
+        .filter(o => !scannedOrders.some(s => s.orderId === o.orderId))
+        .map(o => ({ orderId: o.orderId, orderNumber: o.customerOrderNumber, status: "pending" as const }));
+      if (newOrders.length > 0) {
+        setScannedOrders(prev => [...prev, ...newOrders]);
+      }
+      if (result.type === "nfe") {
+        toast.success(`NF-e encontrada: ${result.nfeNumber ?? result.nfeKey?.slice(-6)} · ${result.orders.length} pedido(s)`);
+      } else {
+        toast.success(`Pedido ${result.orders[0].customerOrderNumber} adicionado.`);
+      }
+      setNfInput("");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Código não encontrado.");
+      setNfInput("");
+    } finally {
+      setNfLoading(false);
+    }
+  }, [scannedOrders, utils]);
+
   const handleCameraScan = useCallback((code: string) => {
     setShowScanner(null);
     if (showScanner === "point") {
       handlePointScan(code);
     } else if (showScanner === "order") {
       handleOrderScan(code);
+    } else if (showScanner === "nf") {
+      handleNfScan(code);
     }
-  }, [showScanner, handlePointScan, handleOrderScan]);
+  }, [showScanner, handlePointScan, handleOrderScan, handleNfScan]);
 
   const handleReset = () => {
     setScreen("select_point");
@@ -193,6 +238,9 @@ export function CollectorIntraHospitalar() {
     setScannedOrders([]);
     setOrderInput("");
     setPointInput("");
+    setNfInput("");
+    setNfResult(null);
+    setScanMode("nf");
     setBatchResult(null);
   };
 
@@ -202,6 +250,8 @@ export function CollectorIntraHospitalar() {
       setTimeout(() => pointInputRef.current?.focus(), 100);
     } else if (screen === "scan_orders") {
       setTimeout(() => orderInputRef.current?.focus(), 100);
+    } else if (screen === "scan_nf") {
+      setTimeout(() => nfInputRef.current?.focus(), 100);
     }
   }, [screen]);
 
@@ -363,7 +413,18 @@ export function CollectorIntraHospitalar() {
               {STATUS_BY_POINT_TYPE[selectedPoint.type].map(status => (
                 <button
                   key={status}
-                  onClick={() => { setSelectedStatus(status); setScreen("scan_orders"); }}
+                  onClick={() => {
+                    setSelectedStatus(status);
+                    // ARRIVED_COMPLEX: fluxo por NF ou pedido
+                    if (status === "ARRIVED_COMPLEX") {
+                      setScannedOrders([]);
+                      setNfResult(null);
+                      setScanMode("nf");
+                      setScreen("scan_nf");
+                    } else {
+                      setScreen("scan_orders");
+                    }
+                  }}
                   className="w-full text-left bg-white rounded-lg p-4 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
@@ -374,6 +435,124 @@ export function CollectorIntraHospitalar() {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── TELA: SCAN NF / PEDIDO (chegada na doca) ── */}
+        {screen === "scan_nf" && selectedPoint && selectedStatus && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 rounded-xl p-4 text-white">
+              <button onClick={() => setScreen("select_status")} className="flex items-center gap-1 text-slate-400 text-sm mb-3 hover:text-white">
+                <ArrowLeft className="h-4 w-4" /> Voltar
+              </button>
+              <div className="flex items-center gap-2 mb-1">
+                <Truck className="h-5 w-5 text-blue-400" />
+                <h2 className="text-lg font-semibold">Chegada na Doca</h2>
+              </div>
+              <p className="text-slate-400 text-sm">{selectedPoint.name}</p>
+            </div>
+
+            {/* Toggle NF / Pedido */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
+              <div className="flex gap-2 mb-1">
+                <button
+                  onClick={() => { setScanMode("nf"); setNfInput(""); }}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    scanMode === "nf"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Bipar NF-e
+                </button>
+                <button
+                  onClick={() => { setScanMode("order"); setNfInput(""); }}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    scanMode === "order"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Bipar Pedido
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                {scanMode === "nf"
+                  ? "Bipe o código de barras da NF-e (chave de acesso de 44 dígitos). Todos os pedidos vinculados serão registrados automaticamente."
+                  : "Bipe o número do pedido para adicionar individualmente."}
+              </p>
+
+              <div className="flex gap-2">
+                <Input
+                  ref={nfInputRef}
+                  value={nfInput}
+                  onChange={e => setNfInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleNfScan(nfInput)}
+                  placeholder={scanMode === "nf" ? "Chave NF-e (44 dígitos)..." : "Número do pedido..."}
+                  className="flex-1"
+                  autoComplete="off"
+                  disabled={nfLoading}
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowScanner("nf")}
+                  title="Usar câmera"
+                  disabled={nfLoading}
+                >
+                  <Camera className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  onClick={() => handleNfScan(nfInput)}
+                  disabled={!nfInput.trim() || nfLoading}
+                >
+                  {nfLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Pedidos adicionados */}
+            {scannedOrders.length > 0 && (
+              <div className="bg-white rounded-xl border border-slate-200">
+                <div className="p-3 border-b border-slate-100 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700 flex items-center gap-1">
+                    <Package className="h-4 w-4" />
+                    {scannedOrders.length} pedido(s) para registrar
+                  </p>
+                  {nfResult?.type === "nfe" && nfResult.nfeNumber && (
+                    <span className="text-xs text-slate-400">NF-e {nfResult.nfeNumber}</span>
+                  )}
+                </div>
+                <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                  {scannedOrders.map(order => (
+                    <div key={order.orderId} className="flex items-center justify-between p-3">
+                      <span className="text-sm font-mono text-slate-800">#{order.orderNumber}</span>
+                      <button
+                        onClick={() => handleRemoveOrder(order.orderId)}
+                        className="text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button
+              className="w-full h-14 text-base font-semibold"
+              disabled={scannedOrders.length === 0 || batchMut.isPending}
+              onClick={() => setScreen("confirm")}
+            >
+              <CheckCircle2 className="h-5 w-5 mr-2" />
+              Confirmar {scannedOrders.length} Pedido(s)
+            </Button>
           </div>
         )}
 
