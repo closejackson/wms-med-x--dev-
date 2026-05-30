@@ -74,7 +74,7 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
-      const dateClause = dateRangeClause("last_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("arrived_complex_timestamp", input.startDate, input.endDate);
 
       // Médias globais do tenant
       const [globalRows] = await (db as any).execute(sql.raw(`
@@ -157,7 +157,7 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
-      const dateClause = dateRangeClause("last_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("arrived_complex_timestamp", input.startDate, input.endDate);
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
@@ -219,7 +219,7 @@ export const intraHospitalarAnalyticsRouter = router({
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
       const sla = input.slaMinutes;
-      const dateClause = dateRangeClause("va.last_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("va.arrived_complex_timestamp", input.startDate, input.endDate);
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
@@ -368,19 +368,19 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
-      // Filtro de período para pickingWaves.createdAt
+      // Filtro de período pela data de chegada na doca (ARRIVED_COMPLEX)
       let waveDateFilter: string;
       if (input.startDate || input.endDate) {
         const parts: string[] = [];
-        if (input.startDate) parts.push(`AND pw.createdAt >= '${toMysqlDatetime(input.startDate)}'`);
+        if (input.startDate) parts.push(`AND dl_first.firstArrival >= '${toMysqlDatetime(input.startDate)}'`);
         if (input.endDate) {
           const end = new Date(input.endDate);
           end.setHours(23, 59, 59, 999);
-          parts.push(`AND pw.createdAt <= '${toMysqlDatetime(end)}'`);
+          parts.push(`AND dl_first.firstArrival <= '${toMysqlDatetime(end)}'`);
         }
         waveDateFilter = parts.join("\n          ");
       } else {
-        waveDateFilter = `AND pw.createdAt >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
+        waveDateFilter = `AND dl_first.firstArrival >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
       }
 
       const [rows] = await (db as any).execute(sql.raw(`
