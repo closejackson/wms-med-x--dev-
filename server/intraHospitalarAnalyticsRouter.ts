@@ -74,7 +74,7 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
-      const dateClause = dateRangeClause("first_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("last_timestamp", input.startDate, input.endDate);
 
       // Médias globais do tenant
       const [globalRows] = await (db as any).execute(sql.raw(`
@@ -157,7 +157,7 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
-      const dateClause = dateRangeClause("first_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("last_timestamp", input.startDate, input.endDate);
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
@@ -219,7 +219,7 @@ export const intraHospitalarAnalyticsRouter = router({
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
       const sla = input.slaMinutes;
-      const dateClause = dateRangeClause("va.first_timestamp", input.startDate, input.endDate);
+      const dateClause = dateRangeClause("va.last_timestamp", input.startDate, input.endDate);
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
