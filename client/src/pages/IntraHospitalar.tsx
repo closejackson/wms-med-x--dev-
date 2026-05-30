@@ -32,6 +32,7 @@ import {
   Home,
   FileSpreadsheet,
   Filter,
+  Calendar,
 } from "lucide-react";
 import { ImportDeliveryPointsDialog } from "../components/ImportDeliveryPointsDialog";
 
@@ -66,6 +67,8 @@ export function IntraHospitalar() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [editingPoint, setEditingPoint] = useState<{ id: number; name: string; description?: string; floor?: string; isActive: boolean } | null>(null);
 
   // Form state
@@ -94,11 +97,15 @@ export function IntraHospitalar() {
     trpc.intraHospital.listOrdersWithStatus.useQuery({
       limit: 100,
       tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+      startDate,
+      endDate,
     });
 
   const { data: reportData, isLoading: loadingReport } =
     trpc.intraHospital.getTransitReport.useQuery({
       tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+      startDate,
+      endDate,
     });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
@@ -162,6 +169,26 @@ export function IntraHospitalar() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro de período */}
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+              <Calendar className="h-4 w-4 text-slate-400 hidden sm:block" />
+              <input
+                type="date"
+                className="h-7 rounded border-0 px-1 text-xs text-slate-700 bg-transparent focus:outline-none"
+                value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                onChange={e => setStartDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+              />
+              <span className="text-xs text-slate-400">até</span>
+              <input
+                type="date"
+                className="h-7 rounded border-0 px-1 text-xs text-slate-700 bg-transparent focus:outline-none"
+                value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                onChange={e => setEndDate(e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined)}
+              />
+              {(startDate || endDate) && (
+                <button onClick={() => { setStartDate(undefined); setEndDate(undefined); }} className="text-xs text-slate-400 hover:text-slate-700">✕</button>
+              )}
+            </div>
             {/* Filtro de cliente — visível apenas para Global Admin */}
             {isGlobalAdmin && (
               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">

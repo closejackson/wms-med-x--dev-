@@ -7,6 +7,7 @@
  *   - getWipStatus:     contagem de pedidos em cada estágio
  *   - getAlerts:        pedidos que excederam o SLA configurado
  *   - getArrivalsByHour: volume de chegadas na doca por hora do dia
+ *   - getWaveDeliveryTimes: tempo total de entrega por romaneio
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +27,32 @@ function formatMinutes(minutes: number | null): string | null {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
+/** Formata uma Date para string MySQL 'YYYY-MM-DD HH:MM:SS' */
+function toMysqlDatetime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/** Retorna cláusulas SQL de período para a coluna `col` */
+function dateRangeClause(col: string, startDate?: Date, endDate?: Date): string {
+  const parts: string[] = [];
+  if (startDate) parts.push(`${col} >= '${toMysqlDatetime(startDate)}'`);
+  if (endDate) {
+    // endDate é o fim do dia selecionado
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    parts.push(`${col} <= '${toMysqlDatetime(end)}'`);
+  }
+  return parts.length ? parts.map(p => `AND ${p}`).join("\n          ") : "";
+}
+
+// Schema de período reutilizável
+const periodSchema = z.object({
+  tenantId: z.number().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+});
+
 // ─── Router ──────────────────────────────────────────────────────────────────
 
 export const intraHospitalarAnalyticsRouter = router({
@@ -36,11 +63,7 @@ export const intraHospitalarAnalyticsRouter = router({
    * Inclui também as médias globais do tenant.
    */
   getLeadTimeStats: tenantProcedure
-    .input(z.object({
-      tenantId: z.number().optional(),
-      startDate: z.date().optional(),
-      endDate: z.date().optional(),
-    }))
+    .input(periodSchema)
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
@@ -50,6 +73,8 @@ export const intraHospitalarAnalyticsRouter = router({
         : ctx.effectiveTenantId;
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
+
+      const dateClause = dateRangeClause("first_timestamp", input.startDate, input.endDate);
 
       // Médias globais do tenant
       const [globalRows] = await (db as any).execute(sql.raw(`
@@ -62,6 +87,7 @@ export const intraHospitalarAnalyticsRouter = router({
           SUM(is_complete)                         AS total_concluidos
         FROM v_delivery_analytics
         WHERE tenantId = ${effectiveTenantId}
+          ${dateClause}
       `));
 
       // Médias por farmácia (deliveryPoint)
@@ -79,6 +105,7 @@ export const intraHospitalarAnalyticsRouter = router({
         LEFT JOIN deliveryPoints dp ON dp.id = va.delivery_point_id
         WHERE va.tenantId = ${effectiveTenantId}
           AND va.delivery_point_id IS NOT NULL
+          ${dateClause}
         GROUP BY va.delivery_point_id, dp.name, dp.type, dp.floor
         ORDER BY avg_total DESC
       `));
@@ -119,9 +146,7 @@ export const intraHospitalarAnalyticsRouter = router({
    * WIP = Work In Progress (pedidos ainda não concluídos).
    */
   getWipStatus: tenantProcedure
-    .input(z.object({
-      tenantId: z.number().optional(),
-    }))
+    .input(periodSchema)
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
@@ -132,12 +157,15 @@ export const intraHospitalarAnalyticsRouter = router({
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
+      const dateClause = dateRangeClause("first_timestamp", input.startDate, input.endDate);
+
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
           current_status,
           COUNT(*) AS total
         FROM v_delivery_analytics
         WHERE tenantId = ${effectiveTenantId}
+          ${dateClause}
         GROUP BY current_status
       `));
 
@@ -177,6 +205,8 @@ export const intraHospitalarAnalyticsRouter = router({
     .input(z.object({
       tenantId: z.number().optional(),
       slaMinutes: z.number().min(1).max(1440).default(120),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -189,6 +219,7 @@ export const intraHospitalarAnalyticsRouter = router({
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
 
       const sla = input.slaMinutes;
+      const dateClause = dateRangeClause("va.first_timestamp", input.startDate, input.endDate);
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
@@ -215,6 +246,7 @@ export const intraHospitalarAnalyticsRouter = router({
         LEFT JOIN pickingOrders po ON po.id = va.orderId
         WHERE va.tenantId = ${effectiveTenantId}
           AND va.is_complete = 0
+          ${dateClause}
           AND (
             va.tempo_permanencia_doca    > ${sla}
             OR va.tempo_transito_interno > ${sla}
@@ -254,6 +286,8 @@ export const intraHospitalarAnalyticsRouter = router({
       days: z.number().min(1).max(90).default(30),
       // offset do fuso horário do cliente em minutos (ex: -180 para UTC-3)
       tzOffsetMinutes: z.number().min(-840).max(840).default(0),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -270,6 +304,21 @@ export const intraHospitalarAnalyticsRouter = router({
       const absMin = Math.abs(input.tzOffsetMinutes);
       const tzStr = `${sign}${String(Math.floor(absMin / 60)).padStart(2, '0')}:${String(absMin % 60).padStart(2, '0')}`;
 
+      // Se há período definido, usa startDate/endDate; caso contrário, usa `days`
+      let timeFilter: string;
+      if (input.startDate || input.endDate) {
+        const parts: string[] = [];
+        if (input.startDate) parts.push(`AND timestamp >= '${toMysqlDatetime(input.startDate)}'`);
+        if (input.endDate) {
+          const end = new Date(input.endDate);
+          end.setHours(23, 59, 59, 999);
+          parts.push(`AND timestamp <= '${toMysqlDatetime(end)}'`);
+        }
+        timeFilter = parts.join("\n          ");
+      } else {
+        timeFilter = `AND timestamp >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
+      }
+
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
           HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}')) AS hora,
@@ -277,7 +326,7 @@ export const intraHospitalarAnalyticsRouter = router({
         FROM deliveryLogs
         WHERE tenantId = ${effectiveTenantId}
           AND status = 'ARRIVED_COMPLEX'
-          AND timestamp >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)
+          ${timeFilter}
         GROUP BY HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}'))
         ORDER BY hora ASC
       `));
@@ -306,6 +355,8 @@ export const intraHospitalarAnalyticsRouter = router({
       tenantId: z.number().optional(),
       days: z.number().min(1).max(90).default(30),
       limit: z.number().min(1).max(200).default(50),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -316,6 +367,21 @@ export const intraHospitalarAnalyticsRouter = router({
         : ctx.effectiveTenantId;
 
       if (!effectiveTenantId) throw new TRPCError({ code: "BAD_REQUEST", message: "tenantId obrigatório" });
+
+      // Filtro de período para pickingWaves.createdAt
+      let waveDateFilter: string;
+      if (input.startDate || input.endDate) {
+        const parts: string[] = [];
+        if (input.startDate) parts.push(`AND pw.createdAt >= '${toMysqlDatetime(input.startDate)}'`);
+        if (input.endDate) {
+          const end = new Date(input.endDate);
+          end.setHours(23, 59, 59, 999);
+          parts.push(`AND pw.createdAt <= '${toMysqlDatetime(end)}'`);
+        }
+        waveDateFilter = parts.join("\n          ");
+      } else {
+        waveDateFilter = `AND pw.createdAt >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
+      }
 
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT
@@ -350,7 +416,7 @@ export const intraHospitalarAnalyticsRouter = router({
           GROUP BY orderId
         ) dl_last ON dl_last.orderId = po.id
         WHERE pw.tenantId = ${effectiveTenantId}
-          AND pw.createdAt >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)
+          ${waveDateFilter}
           -- Só romaneios que têm ao menos uma chegada na doca registrada
           AND dl_first.firstArrival IS NOT NULL
         GROUP BY pw.id, pw.waveNumber

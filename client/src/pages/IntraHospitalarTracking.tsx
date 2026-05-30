@@ -447,6 +447,8 @@ export default function IntraHospitalarTracking() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [pointFilter, setPointFilter] = useState<string>("ALL");
   const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   const { data: tenantsList } = trpc.tenants.list.useQuery(undefined, { enabled: isGlobalAdmin });
 
@@ -469,6 +471,8 @@ export default function IntraHospitalarTracking() {
       deliveryPointId: pointFilter !== "ALL" ? Number(pointFilter) : undefined,
       limit: 200,
       tenantId: isGlobalAdmin ? selectedTenantId : undefined,
+      startDate,
+      endDate,
     },
     {
       refetchInterval: 30_000, // atualiza a cada 30s
@@ -534,6 +538,26 @@ export default function IntraHospitalarTracking() {
             <Filter className="h-3 w-3" /> Filtros
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Filtro de período */}
+            <div className="flex items-center gap-1.5 border border-slate-200 rounded-md px-3 h-10">
+              <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+              <input
+                type="date"
+                className="flex-1 min-w-0 text-xs text-slate-700 bg-transparent focus:outline-none"
+                value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                onChange={e => setStartDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+              />
+              <span className="text-xs text-slate-400">-</span>
+              <input
+                type="date"
+                className="flex-1 min-w-0 text-xs text-slate-700 bg-transparent focus:outline-none"
+                value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                onChange={e => setEndDate(e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined)}
+              />
+              {(startDate || endDate) && (
+                <button onClick={() => { setStartDate(undefined); setEndDate(undefined); }} className="text-slate-400 hover:text-slate-700 text-xs">✕</button>
+              )}
+            </div>
             {/* Filtro de cliente — apenas Global Admin */}
             {isGlobalAdmin && (
               <Select

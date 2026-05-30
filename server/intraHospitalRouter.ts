@@ -700,18 +700,25 @@ export const intraHospitalRouter = router({
    * Lista pedidos com seu último status de rastreio intra-hospitalar.
    * Útil para a tela de monitorização em tempo real.
    */
-  listOrdersWithStatus: tenantProcedure
+    listOrdersWithStatus: tenantProcedure
     .input(z.object({
       tenantId: z.number().optional(),
       deliveryPointId: z.number().optional(),
       status: z.enum(STATUS_ORDER).optional(),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
       limit: z.number().min(1).max(200).default(50),
     }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
       // Subquery: último status de cada pedido
+      const tenantCond = ctx.isGlobalAdmin && !input.tenantId
+        ? undefined
+        : eq(deliveryLogs.tenantId, (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId);
+      const startCond = input.startDate ? sql`${deliveryLogs.timestamp} >= ${input.startDate}` : undefined;
+      const endCond = input.endDate ? sql`${deliveryLogs.timestamp} <= ${input.endDate}` : undefined;
+      const whereConds = [tenantCond, startCond, endCond].filter(Boolean) as Parameters<typeof and>;
       const latestLogs = await db
         .select({
           orderId: deliveryLogs.orderId,
@@ -722,9 +729,7 @@ export const intraHospitalRouter = router({
         })
         .from(deliveryLogs)
         .leftJoin(deliveryPoints, eq(deliveryLogs.deliveryPointId, deliveryPoints.id))
-        .where(ctx.isGlobalAdmin && !input.tenantId
-          ? undefined
-          : eq(deliveryLogs.tenantId, (ctx.isGlobalAdmin && input.tenantId) ? input.tenantId : ctx.effectiveTenantId))
+        .where(whereConds.length > 0 ? and(...whereConds) : undefined)
         .orderBy(desc(deliveryLogs.timestamp));
 
       // Manter apenas o log mais recente por pedido

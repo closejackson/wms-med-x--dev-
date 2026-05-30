@@ -21,6 +21,7 @@ import {
   Timer,
   Activity,
   Package,
+  Calendar,
 } from "lucide-react";
 import {
   BarChart,
@@ -172,6 +173,8 @@ function AlertRow({
 export default function IntraHospitalarDashboard() {
   const [slaMinutes, setSlaMinutes] = useState(120);
   const [selectedTenantId, setSelectedTenantId] = useState<number | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   const { user } = useAuth();
   const isGlobalAdmin = user?.tenantId === 1;
@@ -192,27 +195,27 @@ export default function IntraHospitalarDashboard() {
   const refetchInterval = 30_000; // 30 segundos
 
   const wipQuery = trpc.intraHospitalarAnalytics.getWipStatus.useQuery(
-    { tenantId: queryTenantId },
+    { tenantId: queryTenantId, startDate, endDate },
     { refetchInterval }
   );
 
   const leadTimeQuery = trpc.intraHospitalarAnalytics.getLeadTimeStats.useQuery(
-    { tenantId: queryTenantId },
+    { tenantId: queryTenantId, startDate, endDate },
     { refetchInterval }
   );
 
   const alertsQuery = trpc.intraHospitalarAnalytics.getAlerts.useQuery(
-    { slaMinutes, tenantId: queryTenantId },
+    { slaMinutes, tenantId: queryTenantId, startDate, endDate },
     { refetchInterval }
   );
 
   const arrivalsQuery = trpc.intraHospitalarAnalytics.getArrivalsByHour.useQuery(
-    { days: 30, tenantId: queryTenantId, tzOffsetMinutes: -new Date().getTimezoneOffset() },
+    { days: 30, tenantId: queryTenantId, tzOffsetMinutes: -new Date().getTimezoneOffset(), startDate, endDate },
     { refetchInterval }
   );
 
   const waveDeliveryQuery = trpc.intraHospitalarAnalytics.getWaveDeliveryTimes.useQuery(
-    { tenantId: queryTenantId, days: 30, limit: 50 },
+    { tenantId: queryTenantId, days: 30, limit: 50, startDate, endDate },
     { refetchInterval }
   );
 
@@ -289,6 +292,30 @@ export default function IntraHospitalarDashboard() {
                 <p className="text-xs text-slate-500">Intra-Hospitalar · Atualiza a cada 30s</p>
               </div>
             </div>
+          </div>
+          {/* Filtro de período */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Calendar className="h-3.5 w-3.5 text-slate-400 hidden sm:block" />
+            <input
+              type="date"
+              className="h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              value={startDate ? startDate.toISOString().split('T')[0] : ''}
+              onChange={e => setStartDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+            />
+            <span className="text-xs text-slate-400">até</span>
+            <input
+              type="date"
+              className="h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              value={endDate ? endDate.toISOString().split('T')[0] : ''}
+              onChange={e => setEndDate(e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined)}
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => { setStartDate(undefined); setEndDate(undefined); }}
+                className="h-8 px-1.5 rounded-md text-xs text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                title="Limpar filtro"
+              >✕</button>
+            )}
           </div>
           {/* Filtro de cliente — visível apenas para Global Admin */}
           {isGlobalAdmin && (
