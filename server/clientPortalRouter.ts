@@ -1911,8 +1911,8 @@ Motivo do cancelamento: ${input.reason}`.trim() : order[0].notes,
       }
 
       const dateFilter = [
-        input.startDate ? `AND created_at >= '${input.startDate} 00:00:00'` : '',
-        input.endDate   ? `AND created_at <= '${input.endDate} 23:59:59'`   : '',
+        input.startDate ? `AND arrived_complex_timestamp >= '${input.startDate} 00:00:00'` : '',
+        input.endDate   ? `AND arrived_complex_timestamp <= '${input.endDate} 23:59:59'`   : '',
       ].join(' ');
 
       const [globalRows] = await (db as any).execute(sql.raw(`
