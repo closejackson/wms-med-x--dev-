@@ -2,80 +2,110 @@
  * ClientPortalIntraHospitalar.tsx
  *
  * Dashboard de Performance Intra-Hospitalar para o Portal do Cliente.
- * - Valida se o tenant tem intraHospitalEnabled antes de exibir dados
- * - Redireciona para /portal com mensagem de erro se não tiver permissão
- * - Exibe KPIs, WIP, gráficos e alertas de SLA
+ * Espelho do /intra-hospitalar/dashboard — usa endpoints do clientPortal.
  */
-
-import { useEffect, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
-import { useClientPortalAuth } from "@/hooks/useClientPortalAuth";
-import { PortalDateRangeFilter, type DateRange } from "@/components/PortalDateRangeFilter";
-import { ClientPortalLayout } from "@/components/ClientPortalLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  Truck,
+  Building2,
+  RefreshCw,
+  Timer,
+  Activity,
+  Package,
+  Calendar,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
   Cell,
 } from "recharts";
-import {
-  Package,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  TrendingUp,
-  Activity,
-  ShieldX,
-} from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { useClientPortalAuth } from "@/hooks/useClientPortalAuth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ClientPortalLayout } from "@/components/ClientPortalLayout";
 import { toast } from "sonner";
-import { PortalExportButton } from "@/components/PortalExportButton";
 
-// ── Constantes ────────────────────────────────────────────────────────────────
-const SLA_MINUTES = 120;
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
-// ── KPI Card ──────────────────────────────────────────────────────────────────
+const SLA_OPTIONS = [
+  { label: "30 min", value: 30 },
+  { label: "1h",     value: 60 },
+  { label: "2h",     value: 120 },
+  { label: "4h",     value: 240 },
+];
+
+const STATUS_LABELS: Record<string, string> = {
+  ARRIVED_COMPLEX:   "Chegou à Doca",
+  DEPARTED_TO_UNIT:  "Saiu para a Farmácia",
+  ARRIVED_UNIT:      "Chegou à Farmácia",
+  RECEIVING_STARTED: "Recebimento Iniciado",
+  RECEIVE_COMPLETE:  "Recebimento Concluído",
+};
+
+const STAGE_COLORS: Record<string, string> = {
+  ARRIVED_COMPLEX:   "#3b82f6",
+  DEPARTED_TO_UNIT:  "#f59e0b",
+  ARRIVED_UNIT:      "#8b5cf6",
+  RECEIVING_STARTED: "#ec4899",
+  RECEIVE_COMPLETE:  "#10b981",
+};
+
+const BAR_COLORS = [
+  "#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd",
+  "#7c3aed", "#4f46e5", "#818cf8",
+];
+
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
+
 function KpiCard({
   title,
   value,
   sub,
   icon: Icon,
-  color = "blue",
+  color = "text-slate-700",
+  loading,
 }: {
   title: string;
-  value: string | number;
+  value: string | number | null;
   sub?: string;
   icon: React.ElementType;
-  color?: "blue" | "green" | "amber" | "red";
+  color?: string;
+  loading?: boolean;
 }) {
-  const colors = {
-    blue:  { bg: "bg-blue-50",  text: "text-blue-600",  icon: "text-blue-500"  },
-    green: { bg: "bg-green-50", text: "text-green-600", icon: "text-green-500" },
-    amber: { bg: "bg-amber-50", text: "text-amber-600", icon: "text-amber-500" },
-    red:   { bg: "bg-red-50",   text: "text-red-600",   icon: "text-red-500"   },
-  };
-  const c = colors[color];
   return (
-    <Card>
-      <CardContent className="p-5">
+    <Card className="bg-white border border-slate-200 shadow-sm">
+      <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{title}</p>
-            <p className={`text-2xl font-bold mt-1 ${c.text}`}>{value}</p>
-            {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide truncate">{title}</p>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mt-1" />
+            ) : (
+              <p className={`text-2xl font-bold mt-1 ${color}`}>
+                {value ?? "—"}
+              </p>
+            )}
+            {sub && !loading && (
+              <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+            )}
           </div>
-          <div className={`p-2 rounded-lg ${c.bg}`}>
-            <Icon className={`h-5 w-5 ${c.icon}`} />
+          <div className={`p-2 rounded-lg bg-slate-50 ${color}`}>
+            <Icon className="h-5 w-5" />
           </div>
         </div>
       </CardContent>
@@ -83,11 +113,67 @@ function KpiCard({
   );
 }
 
-// ── Componente Principal ──────────────────────────────────────────────────────
+function AlertRow({
+  orderId,
+  customerOrderNumber,
+  currentStatus,
+  pointName,
+  maxFaseFormatted,
+  slaExceededBy,
+  slaMinutes,
+}: {
+  orderId: number;
+  customerOrderNumber: string;
+  currentStatus: string;
+  pointName: string | null;
+  maxFaseFormatted: string | null;
+  slaExceededBy: number;
+  slaMinutes: number;
+}) {
+  const severity = slaExceededBy > slaMinutes * 2 ? "high" : slaExceededBy > slaMinutes ? "medium" : "low";
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+      severity === "high"   ? "bg-red-50 border-red-200" :
+      severity === "medium" ? "bg-orange-50 border-orange-200" :
+                              "bg-yellow-50 border-yellow-200"
+    }`}>
+      <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${
+        severity === "high" ? "text-red-500" : severity === "medium" ? "text-orange-500" : "text-yellow-500"
+      }`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm font-semibold text-slate-800">{customerOrderNumber}</span>
+          <Badge variant="outline" className="text-xs">
+            {STATUS_LABELS[currentStatus] ?? currentStatus}
+          </Badge>
+          {pointName && (
+            <span className="text-xs text-slate-500">{pointName}</span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Tempo máximo: <span className="font-semibold">{maxFaseFormatted ?? "—"}</span>
+          {slaExceededBy > 0 && (
+            <span className={`ml-1 font-semibold ${
+              severity === "high" ? "text-red-600" : severity === "medium" ? "text-orange-600" : "text-yellow-600"
+            }`}>
+              (+{slaExceededBy}min acima do SLA)
+            </span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export function ClientPortalIntraHospitalar() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useClientPortalAuth({ redirectIfUnauthenticated: true });
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+
+  const [slaMinutes, setSlaMinutes] = useState(120);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   // Redirecionar se o tenant não tem intraHospitalEnabled
   useEffect(() => {
@@ -99,33 +185,86 @@ export function ClientPortalIntraHospitalar() {
     }
   }, [authLoading, user, setLocation]);
 
-  const leadTimeQuery = trpc.clientPortal.intraLeadTimeStats.useQuery({
-    startDate: dateRange.from,
-    endDate: dateRange.to,
-  }, {
-    enabled: !!user?.intraHospitalEnabled,
-    retry: false,
-  });
+  const refetchInterval = 30_000;
 
   const wipQuery = trpc.clientPortal.intraWipStatus.useQuery(undefined, {
     enabled: !!user?.intraHospitalEnabled,
+    refetchInterval,
+    retry: false,
+  });
+
+  const leadTimeQuery = trpc.clientPortal.intraLeadTimeStats.useQuery({
+    startDate: startDate ? startDate.toISOString().split("T")[0] : undefined,
+    endDate: endDate ? endDate.toISOString().split("T")[0] : undefined,
+  }, {
+    enabled: !!user?.intraHospitalEnabled,
+    refetchInterval,
     retry: false,
   });
 
   const alertsQuery = trpc.clientPortal.intraAlerts.useQuery(
-    { slaMinutes: SLA_MINUTES },
-    { enabled: !!user?.intraHospitalEnabled, retry: false }
+    { slaMinutes },
+    { enabled: !!user?.intraHospitalEnabled, refetchInterval, retry: false }
   );
 
   const arrivalsQuery = trpc.clientPortal.intraArrivalsByHour.useQuery(
-    { days: dateRange.from ? undefined : 30, tzOffsetMinutes: -new Date().getTimezoneOffset() },
-    { enabled: !!user?.intraHospitalEnabled, retry: false }
+    {
+      days: 30,
+      tzOffsetMinutes: -new Date().getTimezoneOffset(),
+      startDate,
+      endDate,
+    },
+    { enabled: !!user?.intraHospitalEnabled, refetchInterval, retry: false }
   );
 
-  const isLoading = authLoading || leadTimeQuery.isLoading || wipQuery.isLoading;
-  const exportIntraMutation = trpc.portalExport.exportIntraHosp.useMutation();
+  const waveDeliveryQuery = trpc.clientPortal.intraWaveDeliveryTimes.useQuery(
+    { days: 30, limit: 50, startDate, endDate },
+    { enabled: !!user?.intraHospitalEnabled, refetchInterval, retry: false }
+  );
 
-  // Loading state
+  const isLoading = authLoading || wipQuery.isLoading || leadTimeQuery.isLoading;
+
+  const wip = wipQuery.data;
+  const lead = leadTimeQuery.data;
+  const alerts = alertsQuery.data ?? [];
+  const arrivals = arrivalsQuery.data ?? [];
+
+  const pctConcluidos = wip && wip.total > 0
+    ? Math.round((wip.concluidos / wip.total) * 100)
+    : 0;
+
+  const pctAlertas = wip && wip.total > 0
+    ? Math.round((alerts.length / wip.total) * 100)
+    : 0;
+
+  const waveChartData = useMemo(() => {
+    return (waveDeliveryQuery.data ?? []).map(w => ({
+      label: w.romaneio,
+      data: w.inicioEntrega ? new Date(w.inicioEntrega).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "",
+      horas: w.duracaoMinutos !== null ? Math.round((w.duracaoMinutos / 60) * 100) / 100 : null,
+      duracaoLabel: w.duracaoLabel,
+      totalOrders: w.totalOrders,
+    }));
+  }, [waveDeliveryQuery.data]);
+
+  const avgWaveStats = useMemo(() => {
+    const waves = (waveDeliveryQuery.data ?? []).filter(w => w.duracaoMinutos !== null);
+    if (waves.length === 0) return null;
+    const avg = waves.reduce((sum, w) => sum + (w.duracaoMinutos ?? 0), 0) / waves.length;
+    const h = Math.floor(avg / 60);
+    const m = Math.round(avg % 60);
+    const label = h > 0 ? `${h}h ${m}min` : `${m}min`;
+    return { avgMinutes: avg, label };
+  }, [waveDeliveryQuery.data]);
+
+  function handleRefresh() {
+    wipQuery.refetch();
+    leadTimeQuery.refetch();
+    alertsQuery.refetch();
+    arrivalsQuery.refetch();
+    waveDeliveryQuery.refetch();
+  }
+
   if (authLoading) {
     return (
       <ClientPortalLayout>
@@ -139,248 +278,389 @@ export function ClientPortalIntraHospitalar() {
     );
   }
 
-  // Sem permissão
-  if (!user?.intraHospitalEnabled) {
-    return (
-      <ClientPortalLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <ShieldX className="h-16 w-16 text-slate-300" />
-          <p className="text-slate-500 text-center">
-            Módulo Intra-Hospitalar não habilitado para este cliente.
-          </p>
-        </div>
-      </ClientPortalLayout>
-    );
-  }
-
-  const lead = leadTimeQuery.data;
-  const wip = wipQuery.data;
-  const alerts = alertsQuery.data ?? [];
-  const arrivals = arrivalsQuery.data ?? [];
-
-  // Dados para o gráfico de barras por farmácia
-  type PharmacyRow = NonNullable<typeof lead>["byPharmacy"][number];
-  const pharmacyChartData = (lead?.byPharmacy ?? []).map((p: PharmacyRow) => ({
-    name: p.pointName.length > 16 ? p.pointName.slice(0, 14) + "…" : p.pointName,
-    tempo: p.avgTotal ?? 0,
-    exceedsSla: (p.avgTotal ?? 0) > SLA_MINUTES,
-  }));
+  if (!user?.intraHospitalEnabled) return null;
 
   return (
     <ClientPortalLayout>
       <div className="space-y-6">
+
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              Performance Intra-Hospitalar
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              KPIs e tempos de ciclo — {user?.tenantName}
-            </p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-indigo-600" />
+            <div>
+              <h1 className="text-base font-bold text-slate-900 leading-tight">
+                Dashboard de Performance
+              </h1>
+              <p className="text-xs text-slate-500">Intra-Hospitalar · Atualiza a cada 30s</p>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-            <PortalDateRangeFilter
-              value={dateRange}
-              onChange={setDateRange}
+
+          {/* Filtro de período */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Calendar className="h-3.5 w-3.5 text-slate-400 hidden sm:block" />
+            <input
+              type="date"
+              className="h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              value={startDate ? startDate.toISOString().split("T")[0] : ""}
+              onChange={e => setStartDate(e.target.value ? new Date(e.target.value + "T00:00:00") : undefined)}
             />
-            {alerts.length > 0 && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {alerts.length} alerta{alerts.length !== 1 ? "s" : ""}
-              </Badge>
+            <span className="text-xs text-slate-400">até</span>
+            <input
+              type="date"
+              className="h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              value={endDate ? endDate.toISOString().split("T")[0] : ""}
+              onChange={e => setEndDate(e.target.value ? new Date(e.target.value + "T23:59:59") : undefined)}
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={() => { setStartDate(undefined); setEndDate(undefined); }}
+                className="h-8 px-1.5 rounded-md text-xs text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                title="Limpar filtro"
+              >✕</button>
             )}
-            <PortalExportButton
-              onExport={(format) =>
-                exportIntraMutation.mutateAsync({ format })
-              }
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </Button>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        {isLoading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── KPI Cards ── */}
+        <section>
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            Resumo Operacional
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard
-              title="Total de Pedidos"
+              title="Total no Complexo"
               value={wip?.total ?? 0}
-              sub="Todos os estágios"
+              sub="pedidos rastreados"
               icon={Package}
-              color="blue"
+              color="text-slate-700"
+              loading={wipQuery.isLoading}
             />
             <KpiCard
               title="Concluídos"
-              value={wip?.concluidos ?? 0}
-              sub={`${wip?.total ? Math.round((wip.concluidos / wip.total) * 100) : 0}% do total`}
+              value={wip ? `${wip.concluidos} (${pctConcluidos}%)` : null}
+              sub="recebimento completo"
               icon={CheckCircle2}
-              color="green"
+              color="text-emerald-600"
+              loading={wipQuery.isLoading}
             />
             <KpiCard
               title="Tempo Médio Total"
-              value={lead?.global.avgTotalFormatted ?? "—"}
-              sub="Doca → Conferência"
-              icon={Clock}
-              color="amber"
+              value={avgWaveStats?.label ?? lead?.global.avgTotalFormatted ?? "—"}
+              sub="média por romaneio"
+              icon={Timer}
+              color="text-indigo-600"
+              loading={waveDeliveryQuery.isLoading}
             />
             <KpiCard
               title="Alertas de SLA"
-              value={alerts.length}
-              sub={`Acima de ${SLA_MINUTES}min`}
+              value={alerts.length > 0 ? `${alerts.length} (${pctAlertas}%)` : "0"}
+              sub={`SLA: ${slaMinutes}min por fase`}
               icon={AlertTriangle}
-              color={alerts.length > 0 ? "red" : "green"}
+              color={alerts.length > 0 ? "text-red-600" : "text-slate-400"}
+              loading={alertsQuery.isLoading}
             />
           </div>
-        )}
+        </section>
 
-        {/* Tempos médios de ciclo */}
-        {!isLoading && lead && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { label: "Tempo na Doca",         value: lead.global.avgDocaFormatted },
-              { label: "Tempo em Trânsito",      value: lead.global.avgTransitoFormatted },
-              { label: "Tempo de Conferência",   value: lead.global.avgConferenciaFormatted },
-            ].map((item) => (
-              <Card key={item.label}>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <TrendingUp className="h-4 w-4 text-blue-500 shrink-0" />
-                  <div>
-                    <p className="text-xs text-slate-500">{item.label}</p>
-                    <p className="text-lg font-semibold text-slate-800">{item.value ?? "—"}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* ── WIP por estágio + Lead Time ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Gráfico de barras por farmácia */}
-        {!isLoading && pharmacyChartData.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-700">
-                Tempo Médio por Farmácia
+          {/* WIP por estágio */}
+          <Card className="bg-white border border-slate-200 shadow-sm">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-indigo-500" />
+                Pedidos por Estágio (WIP)
               </CardTitle>
-              <p className="text-xs text-slate-400">
-                Barras em vermelho indicam farmácias acima do SLA ({SLA_MINUTES}min)
-              </p>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={pharmacyChartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+            <CardContent className="px-4 pb-4">
+              {wipQuery.isLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-8 w-full" />)}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {Object.entries(wip?.porStatus ?? {}).map(([status, count]) => {
+                    const pct = wip && wip.total > 0 ? Math.round((count / wip.total) * 100) : 0;
+                    return (
+                      <div key={status} className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: STAGE_COLORS[status] ?? "#94a3b8" }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs text-slate-600 truncate">
+                              {STATUS_LABELS[status] ?? status}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-800 ml-2 flex-shrink-0">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: STAGE_COLORS[status] ?? "#94a3b8",
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-400 w-8 text-right flex-shrink-0">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                  <div className="pt-2 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+                    <span>Na Doca: <strong className="text-slate-700">{wip?.naDoca ?? 0}</strong></span>
+                    <span>Em Trânsito: <strong className="text-slate-700">{wip?.emTransito ?? 0}</strong></span>
+                    <span>Na Farmácia: <strong className="text-slate-700">{wip?.naFarmacia ?? 0}</strong></span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Lead Time médio */}
+          <Card className="bg-white border border-slate-200 shadow-sm">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-indigo-500" />
+                Tempos Médios de Ciclo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {leadTimeQuery.isLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {[
+                    { label: "Permanência na Doca",            value: lead?.global.avgDocaFormatted,         color: "#3b82f6", icon: Truck },
+                    { label: "Trânsito Doca → Farmácia",       value: lead?.global.avgTransitoFormatted,     color: "#f59e0b", icon: TrendingUp },
+                    { label: "Conferência na Farmácia",        value: lead?.global.avgConferenciaFormatted,  color: "#8b5cf6", icon: Building2 },
+                    { label: "Tempo Total (Chegada → Conclusão)", value: avgWaveStats?.label ?? lead?.global.avgTotalFormatted, color: "#10b981", icon: CheckCircle2 },
+                  ].map(({ label, value, color, icon: Icon }) => (
+                    <div key={label} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">
+                      <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-500 truncate">{label}</p>
+                        <p className="text-sm font-semibold text-slate-800">{value ?? "Sem dados"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Gráfico de barras: tempo médio por farmácia ── */}
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-indigo-500" />
+              Tempo Médio de Conferência por Farmácia (min)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {leadTimeQuery.isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : (lead?.byPharmacy ?? []).length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+                Nenhum dado disponível
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart
+                  data={(lead?.byPharmacy ?? []).map((p: any) => ({
+                    name: p.pointName,
+                    conferencia: p.avgConferencia ?? 0,
+                    total: p.avgTotal ?? 0,
+                    pedidos: p.totalPedidos,
+                  }))}
+                  margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} unit="min" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#64748b" }} unit="min" />
                   <Tooltip
-                    formatter={(value: number) => [`${value}min`, "Tempo Médio"]}
-                    contentStyle={{ fontSize: 12 }}
+                    formatter={(v: number, name: string) => [
+                      `${v}min`,
+                      name === "conferencia" ? "Conferência" : "Total",
+                    ]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   />
-                  <Bar dataKey="tempo" radius={[4, 4, 0, 0]} name="Tempo Médio (min)">
-                    {pharmacyChartData.map((entry: { name: string; tempo: number; exceedsSla: boolean }, index: number) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.exceedsSla ? "#ef4444" : "#3b82f6"}
-                      />
+                  <Bar dataKey="conferencia" name="Conferência" radius={[4, 4, 0, 0]}>
+                    {(lead?.byPharmacy ?? []).map((_: any, i: number) => (
+                      <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Gráfico de chegadas por hora */}
-        {!isLoading && arrivals.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-700">
-                Chegadas na Doca por Hora (últimos 30 dias)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={160}>
+        {/* ── Gráfico de área: chegadas por hora ── */}
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Truck className="h-4 w-4 text-indigo-500" />
+              Volume de Chegadas na Doca por Hora
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {arrivalsQuery.isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={arrivals} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                   <defs>
-                    <linearGradient id="colorArrivals" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <linearGradient id="colorArrivalsPortal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="horaLabel" tick={{ fontSize: 10 }} interval={3} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 12 }} />
+                  <XAxis dataKey="horaLabel" tick={{ fontSize: 10, fill: "#64748b" }} interval={3} />
+                  <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
+                  <Tooltip
+                    formatter={(v: number) => [`${v} chegadas`, "Chegadas"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="total"
-                    stroke="#3b82f6"
-                    fill="url(#colorArrivals)"
+                    stroke="#6366f1"
                     strokeWidth={2}
-                    name="Chegadas"
+                    fill="url(#colorArrivalsPortal)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Alertas de SLA */}
-        {!isLoading && alerts.length > 0 && (
-          <Card className="border-red-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-red-700 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Pedidos com SLA Excedido
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {alerts.slice(0, 10).map((alert: typeof alerts[number]) => (
-                  <div
-                    key={alert.orderId}
-                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">
-                        {alert.customerOrderNumber}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {alert.pointName ?? "Sem destino"} · {alert.currentStatus}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="destructive" className="text-xs">
-                        +{alert.slaExceededBy}min acima do SLA
-                      </Badge>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Total: {alert.maxFaseFormatted ?? "—"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {alerts.length > 10 && (
-                  <p className="text-xs text-slate-400 text-center pt-1">
-                    +{alerts.length - 10} pedidos adicionais com SLA excedido
-                  </p>
-                )}
+        {/* ── Gráfico: Tempo Total por Romaneio ── */}
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-violet-500" />
+              Tempo Total de Entrega por Romaneio
+            </CardTitle>
+            <p className="text-xs text-slate-400 mt-0.5">Da chegada do 1º pedido na doca até a conclusão do último na farmácia</p>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {waveDeliveryQuery.isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : waveChartData.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-slate-400 text-sm">
+                Nenhum romaneio concluído no período selecionado.
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={waveChartData}
+                  margin={{ top: 4, right: 8, left: 0, bottom: 24 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="data"
+                    tick={{ fontSize: 10, fill: "#64748b" }}
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={40}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    tickFormatter={(v: number) => `${v}h`}
+                    label={{ value: "Horas", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 11, fill: "#94a3b8" } }}
+                  />
+                  <Tooltip
+                    formatter={(v: number, _: string, entry: any) => [
+                      `${v}h (${entry.payload.duracaoLabel})`,
+                      `Romaneio ${entry.payload.label}`
+                    ]}
+                    labelFormatter={(label: string) => `Data: ${label}`}
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  />
+                  <Bar dataKey="horas" fill="#7c3aed" radius={[4, 4, 0, 0]}>
+                    {waveChartData.map((_, idx) => (
+                      <Cell key={idx} fill={idx % 2 === 0 ? "#7c3aed" : "#a78bfa"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Estado vazio */}
-        {!isLoading && !lead?.global.totalPedidos && (
-          <Alert>
-            <Activity className="h-4 w-4" />
-            <AlertDescription>
-              Nenhum dado de rastreabilidade intra-hospitalar encontrado para este cliente.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* ── Alertas de SLA ── */}
+        <Card className="bg-white border border-slate-200 shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                Alertas de SLA
+                {alerts.length > 0 && (
+                  <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+                    {alerts.length}
+                  </Badge>
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-1">
+                {SLA_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSlaMinutes(opt.value)}
+                    className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
+                      slaMinutes === opt.value
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {alertsQuery.isLoading ? (
+              <div className="space-y-2">
+                {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : alerts.length === 0 ? (
+              <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                <p className="text-sm text-emerald-700">
+                  Nenhum pedido excedeu o SLA de <strong>{slaMinutes}min</strong> por fase.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {alerts.map((alert: any) => (
+                  <AlertRow key={alert.orderId} {...alert} slaMinutes={slaMinutes} />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
       </div>
     </ClientPortalLayout>
   );

@@ -24,7 +24,7 @@ import {
   warehouseZones,
   pickingOrders,
   pickingOrderItems,
-  
+  pickingWaves,
   pickingAllocations,
   receivingOrders,
   receivingOrderItems,
@@ -2089,16 +2089,17 @@ Motivo do cancelamento: ${input.reason}`.trim() : order[0].notes,
       }));
     }),
 
-  intraArrivalsByHour: publicProcedure
+    intraWaveDeliveryTimes: publicProcedure
     .input(z.object({
       days: z.number().min(1).max(90).default(30),
-      tzOffsetMinutes: z.number().min(-840).max(840).default(0),
+      limit: z.number().min(1).max(200).default(50),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
     }))
     .query(async ({ input, ctx }) => {
       const session = await getPortalSession(ctx.req);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-
       const tenantRows = await db
         .select({ intraHospitalEnabled: tenants.intraHospitalEnabled })
         .from(tenants)
@@ -2108,18 +2109,104 @@ Motivo do cancelamento: ${input.reason}`.trim() : order[0].notes,
       if (!isGlobalAdmin && !tenantRows[0]?.intraHospitalEnabled) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Módulo Intra-Hospitalar não habilitado para este cliente." });
       }
-
+      const tid = session.tenantId;
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      let waveDateFilter: string;
+      if (input.startDate || input.endDate) {
+        const parts: string[] = [];
+        if (input.startDate) parts.push(`AND dl_first.firstArrival >= '${fmt(input.startDate)}'`);
+        if (input.endDate) { const e = new Date(input.endDate); e.setHours(23,59,59,999); parts.push(`AND dl_first.firstArrival <= '${fmt(e)}'`); }
+        waveDateFilter = parts.join("\n          ");
+      } else {
+        waveDateFilter = `AND dl_first.firstArrival >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
+      }
+      const [wrows] = await (db as any).execute(sql.raw(`
+        SELECT
+          pw.id AS waveId,
+          pw.waveNumber AS romaneio,
+          COUNT(DISTINCT po.id) AS totalOrders,
+          MIN(dl_first.firstArrival) AS inicioEntrega,
+          MAX(dl_last.lastComplete) AS fimEntrega,
+          TIMESTAMPDIFF(MINUTE, MIN(dl_first.firstArrival), MAX(dl_last.lastComplete)) AS duracaoMinutos
+        FROM pickingWaves pw
+        JOIN pickingOrders po ON po.waveId = pw.id AND po.tenantId = ${tid}
+        LEFT JOIN (
+          SELECT orderId, MIN(timestamp) AS firstArrival
+          FROM deliveryLogs
+          WHERE status = 'ARRIVED_COMPLEX' AND tenantId = ${tid}
+          GROUP BY orderId
+        ) dl_first ON dl_first.orderId = po.id
+        LEFT JOIN (
+          SELECT orderId, MAX(timestamp) AS lastComplete
+          FROM deliveryLogs
+          WHERE status = 'RECEIVE_COMPLETE' AND tenantId = ${tid}
+          GROUP BY orderId
+        ) dl_last ON dl_last.orderId = po.id
+        WHERE pw.tenantId = ${tid}
+          ${waveDateFilter}
+          AND dl_first.firstArrival IS NOT NULL
+        GROUP BY pw.id, pw.waveNumber
+        HAVING MAX(dl_last.lastComplete) IS NOT NULL
+        ORDER BY MIN(dl_first.firstArrival) DESC
+        LIMIT ${input.limit}
+      `));
+      const fmtMin = (m: number | null) => {
+        if (m === null || m === undefined) return null;
+        const r = Math.round(m); const h = Math.floor(r/60); const min = r%60;
+        return h > 0 ? (min > 0 ? `${h}h ${min}min` : `${h}h`) : `${min}min`;
+      };
+      return (Array.isArray(wrows) ? wrows : []).map((row: any) => ({
+        waveId: Number(row.waveId),
+        romaneio: String(row.romaneio),
+        totalOrders: Number(row.totalOrders),
+        inicioEntrega: row.inicioEntrega ? new Date(row.inicioEntrega) : null,
+        fimEntrega: row.fimEntrega ? new Date(row.fimEntrega) : null,
+        duracaoMinutos: row.duracaoMinutos !== null ? Number(row.duracaoMinutos) : null,
+        duracaoLabel: fmtMin(row.duracaoMinutos !== null ? Number(row.duracaoMinutos) : null),
+      }));
+    }),
+  intraArrivalsByHour: publicProcedure
+    .input(z.object({
+      days: z.number().min(1).max(90).default(30),
+      tzOffsetMinutes: z.number().min(-840).max(840).default(0),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const session = await getPortalSession(ctx.req);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      const tenantRows = await db
+        .select({ intraHospitalEnabled: tenants.intraHospitalEnabled })
+        .from(tenants)
+        .where(eq(tenants.id, session.tenantId))
+        .limit(1);
+      const isGlobalAdmin = session.tenantId === 1;
+      if (!isGlobalAdmin && !tenantRows[0]?.intraHospitalEnabled) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Módulo Intra-Hospitalar não habilitado para este cliente." });
+      }
       const tid = session.tenantId;
       const sign = input.tzOffsetMinutes >= 0 ? '+' : '-';
       const absMin = Math.abs(input.tzOffsetMinutes);
       const tzStr = `${sign}${String(Math.floor(absMin / 60)).padStart(2, '0')}:${String(absMin % 60).padStart(2, '0')}`;
-
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+      const fmtD = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+      let timeFilter: string;
+      if (input.startDate || input.endDate) {
+        const parts: string[] = [];
+        if (input.startDate) parts.push(`AND timestamp >= '${fmtD(input.startDate)}'`);
+        if (input.endDate) { const e = new Date(input.endDate); e.setHours(23,59,59,999); parts.push(`AND timestamp <= '${fmtD(e)}'`); }
+        timeFilter = parts.join("\n          ");
+      } else {
+        timeFilter = `AND timestamp >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)`;
+      }
       const [rows] = await (db as any).execute(sql.raw(`
         SELECT HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}')) AS hora, COUNT(*) AS total
         FROM deliveryLogs
         WHERE tenantId = ${tid}
           AND status = 'ARRIVED_COMPLEX'
-          AND timestamp >= DATE_SUB(NOW(), INTERVAL ${input.days} DAY)
+          ${timeFilter}
         GROUP BY HOUR(CONVERT_TZ(timestamp, '+00:00', '${tzStr}'))
         ORDER BY hora ASC
       `));
