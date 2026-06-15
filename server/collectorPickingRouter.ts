@@ -1805,4 +1805,105 @@ export const collectorPickingRouter = router({
         unitsPerBox: label.unitsPerBox,
       };
     }),
+
+  /**
+   * Registrar separação completa do pedido (bypass de bipagem etiqueta a etiqueta)
+   * Disponível APENAS para Global Admin (tenantId === 1)
+   * Marca todas as alocações pendentes como 'picked' e finaliza a onda.
+   */
+  completeOrderFull: protectedProcedure
+    .input(z.object({ pickingOrderId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Restrito a Global Admin
+      if ((ctx.user as any).tenantId !== 1) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Funcionalidade restrita ao Global Admin." });
+      }
+
+      // pickingOrderId aqui é o waveId
+      const waveId = input.pickingOrderId;
+
+      // Buscar todos os pedidos da onda
+      const waveOrders = await db
+        .select({ id: pickingOrders.id })
+        .from(pickingOrders)
+        .where(eq(pickingOrders.waveId, waveId));
+
+      const orderIds = waveOrders.length > 0
+        ? waveOrders.map(o => o.id)
+        : [waveId];
+
+      // Buscar todas as alocações
+      const allocs = await db
+        .select()
+        .from(pickingAllocations)
+        .where(inArray(pickingAllocations.pickingOrderId, orderIds));
+
+      if (allocs.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Nenhuma alocação encontrada para esta onda." });
+      }
+
+      const pendingAllocs = allocs.filter(
+        a => a.status === "pending" || a.status === "in_progress"
+      );
+
+      // Marcar alocações pendentes como picked com quantidade completa
+      for (const alloc of pendingAllocs) {
+        await db
+          .update(pickingAllocations)
+          .set({ pickedQuantity: alloc.quantity, status: "picked" })
+          .where(eq(pickingAllocations.id, alloc.id));
+      }
+
+      // Marcar pickingOrderItems pendentes como picked
+      for (const orderId of orderIds) {
+        await db
+          .update(pickingOrderItems)
+          .set({ pickedQuantity: sql`${pickingOrderItems.requestedQuantity}`, status: "picked" })
+          .where(
+            and(
+              eq(pickingOrderItems.pickingOrderId, orderId),
+              sql`${pickingOrderItems.status} IN ('pending','picking')`
+            )
+          );
+      }
+
+      // Marcar pickingWaveItems pendentes como picked
+      await db
+        .update(pickingWaveItems)
+        .set({ pickedQuantity: sql`${pickingWaveItems.totalQuantity}`, status: "picked" })
+        .where(
+          and(
+            eq(pickingWaveItems.waveId, waveId),
+            sql`${pickingWaveItems.status} IN ('pending','picking')`
+          )
+        );
+
+      // Atualizar status dos pedidos para 'picked'
+      for (const orderId of orderIds) {
+        await db
+          .update(pickingOrders)
+          .set({ status: "picked", pickedBy: ctx.user.id, pickedAt: new Date() })
+          .where(eq(pickingOrders.id, orderId));
+      }
+
+      // Atualizar status da onda para 'picked'
+      await db
+        .update(pickingWaves)
+        .set({ status: "picked", pickedBy: ctx.user.id, pickedAt: new Date() })
+        .where(eq(pickingWaves.id, waveId));
+
+      console.log(
+        `[PICKING] Onda ${waveId} finalizada via completeOrderFull por Global Admin (userId=${ctx.user.id})`
+      );
+
+      return {
+        ok: true,
+        message: "Separação registrada como completa com sucesso!",
+        ordersUpdated: orderIds.length,
+        allocationsUpdated: pendingAllocs.length,
+      };
+    }),
 });

@@ -11,6 +11,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useAuth } from "../../_core/hooks/useAuth";
 import { useBarcodeScan } from "../../hooks/useBarcodeScan";
 import { CollectorLayout } from "../../components/CollectorLayout";
 import { Button } from "../../components/ui/button";
@@ -37,6 +38,7 @@ import {
   ArrowLeft,
   Tag,
   Loader2,
+  Zap,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -223,6 +225,11 @@ export function CollectorPicking() {
   const [assocAllocationId, setAssocAllocationId] = useState<number | null>(null);
   const [assocPickingOrderId, setAssocPickingOrderId] = useState<number | null>(null);
 
+  // Modal de confirmação para "Registrar separação completa"
+  const [showCompleteFullModal, setShowCompleteFullModal] = useState(false);
+  const [completeFullTargetId, setCompleteFullTargetId] = useState<number | null>(null);
+  const [completeFullWaveNumber, setCompleteFullWaveNumber] = useState("");
+
   // Pilha LIFO para desfazer bipagens no picking
   const [undoStack, setUndoStack] = useState<Array<{
     allocationId: number;
@@ -238,6 +245,23 @@ export function CollectorPicking() {
   const fractionInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
+  const { user } = useAuth();
+  const isGlobalAdmin = (user as any)?.tenantId === 1;
+
+  // Mutation: registrar separação completa (Global Admin only)
+  const completeOrderFullMut = trpc.collectorPicking.completeOrderFull.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      utils.collectorPicking.listOrders.invalidate();
+      setShowCompleteFullModal(false);
+      setCompleteFullTargetId(null);
+      setCompleteFullWaveNumber("");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setShowCompleteFullModal(false);
+    },
+  });
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const currentLocation: RouteLocation | undefined = route[locationIdx];
@@ -889,31 +913,99 @@ export function CollectorPicking() {
 
           <div className="space-y-3">
             {orders?.map((order) => (
-              <button
-                key={order.id}
-                className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:bg-blue-50 transition-all active:scale-[0.98] shadow-sm"
-                onClick={() => {
-                  setSelectedOrderId(order.id);
-                  startOrResumeMut.mutate({ waveId: order.id });
-                }}
-                disabled={startOrResumeMut.isPending}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-gray-900">
-                        Onda {order.waveNumber}
-                      </span>
+              <div key={order.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <button
+                  className="w-full text-left p-4 hover:border-blue-400 hover:bg-blue-50 transition-all active:scale-[0.98]"
+                  onClick={() => {
+                    setSelectedOrderId(order.id);
+                    startOrResumeMut.mutate({ waveId: order.id });
+                  }}
+                  disabled={startOrResumeMut.isPending}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-gray-900">
+                          Onda {order.waveNumber}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {order.totalOrders} pedidos · {order.totalItems} itens
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {order.totalOrders} pedidos · {order.totalItems} itens
-                    </p>
+                    <ChevronRight className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                </div>
-              </button>
+                </button>
+                {isGlobalAdmin && (
+                  <div className="border-t border-gray-100 px-4 py-2 bg-amber-50">
+                    <button
+                      className="flex items-center gap-2 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors"
+                      onClick={() => {
+                        setCompleteFullTargetId(order.id);
+                        setCompleteFullWaveNumber(order.waveNumber);
+                        setShowCompleteFullModal(true);
+                      }}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      Registrar separação completa
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
+
+          {/* Modal de confirmação — Registrar separação completa */}
+          {showCompleteFullModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 rounded-full p-2">
+                    <Zap className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">Registrar separação completa</p>
+                    <p className="text-xs text-gray-500">Onda {completeFullWaveNumber}</p>
+                  </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <p className="text-sm text-amber-800">
+                    Esta ação marca <strong>todas as alocações pendentes</strong> como separadas sem exigir bipagem.
+                    Use apenas quando a separação já foi realizada fisicamente.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowCompleteFullModal(false);
+                      setCompleteFullTargetId(null);
+                      setCompleteFullWaveNumber("");
+                    }}
+                    disabled={completeOrderFullMut.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={() => {
+                      if (completeFullTargetId) {
+                        completeOrderFullMut.mutate({ pickingOrderId: completeFullTargetId });
+                      }
+                    }}
+                    disabled={completeOrderFullMut.isPending}
+                  >
+                    {completeOrderFullMut.isPending ? (
+                      <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando...</>
+                    ) : (
+                      <><Zap className="h-4 w-4 mr-2" />Confirmar</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {startOrResumeMut.isPending && (
             <div className="text-center py-4">
