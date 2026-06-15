@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, asc, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { protectedProcedure, router } from "./_core/trpc";
 import { tenantProcedure, assertSameTenant } from "./_core/tenantGuard";
 import { getDb } from "./db";
@@ -209,7 +209,7 @@ export const collectorPickingRouter = router({
             ? statusFilter
             : and(eq(pickingWaves.tenantId, effectiveTenantId), statusFilter)
         )
-        .orderBy(asc(pickingWaves.createdAt));
+        .orderBy(desc(pickingWaves.createdAt));
 
       return rows;
     }),
