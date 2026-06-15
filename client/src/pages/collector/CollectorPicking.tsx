@@ -972,17 +972,28 @@ export function CollectorPicking() {
                       </button>
                     )}
                     {order.status === "picked" && (
-                      <button
-                        className="flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-800 transition-colors"
-                        onClick={() => {
-                          setUndoCompleteTargetId(order.id);
-                          setUndoCompleteWaveNumber(order.waveNumber);
-                          setShowUndoCompleteModal(true);
-                        }}
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Desfazer separação completa
-                      </button>
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          className={`flex items-center gap-2 text-xs font-semibold transition-colors ${
+                            (order as any).anyOrderHasInvoice
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-red-600 hover:text-red-800"
+                          }`}
+                          disabled={(order as any).anyOrderHasInvoice}
+                          onClick={() => {
+                            if ((order as any).anyOrderHasInvoice) return;
+                            setUndoCompleteTargetId(order.id);
+                            setUndoCompleteWaveNumber(order.waveNumber);
+                            setShowUndoCompleteModal(true);
+                          }}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Desfazer separação completa
+                        </button>
+                        {(order as any).anyOrderHasInvoice && (
+                          <span className="text-xs text-gray-400 ml-5">NF vinculada — não é possível desfazer</span>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

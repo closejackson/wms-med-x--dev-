@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, sql, inArray, notExists } from "drizzle-orm";
 import { protectedProcedure, router } from "./_core/trpc";
 import { tenantProcedure, assertSameTenant } from "./_core/tenantGuard";
 import { getDb } from "./db";
@@ -26,6 +26,7 @@ import {
   inventory,
   pickingOrderItems,
   pickingWaveItems,
+  invoices,
 } from "../drizzle/schema";
 
 // ---------------------------------------------------------------------------
@@ -211,7 +212,48 @@ export const collectorPickingRouter = router({
         )
         .orderBy(desc(pickingWaves.createdAt));
 
-      return rows;
+      // Para cada onda, verificar quais pedidos possuem NF vinculada
+      const waveIds = rows.map((w) => w.id);
+      if (waveIds.length === 0) return [];
+
+      // Buscar pedidos das ondas com info de NF
+      const waveOrdersWithInvoice = await db
+        .select({
+          waveId: pickingOrders.waveId,
+          orderId: pickingOrders.id,
+          hasInvoice: sql<number>`CASE WHEN ${invoices.id} IS NOT NULL THEN 1 ELSE 0 END`,
+        })
+        .from(pickingOrders)
+        .leftJoin(invoices, eq(invoices.pickingOrderId, pickingOrders.id))
+        .where(sql`${pickingOrders.waveId} IN (${sql.join(waveIds.map(id => sql`${id}`), sql`, `)})`);
+
+      // Agrupar por waveId: verificar se ALGUM pedido tem NF (bloqueia desfazer)
+      // e se TODOS os pedidos têm NF (remove da listagem)
+      const waveInvoiceMap = new Map<number, { anyHasInvoice: boolean; allHaveInvoice: boolean }>();
+      for (const row of waveOrdersWithInvoice) {
+        if (!row.waveId) continue;
+        const existing = waveInvoiceMap.get(row.waveId);
+        const hasInv = row.hasInvoice === 1;
+        if (!existing) {
+          waveInvoiceMap.set(row.waveId, { anyHasInvoice: hasInv, allHaveInvoice: hasInv });
+        } else {
+          if (hasInv) existing.anyHasInvoice = true;
+          if (!hasInv) existing.allHaveInvoice = false;
+        }
+      }
+
+      // Filtrar ondas onde TODOS os pedidos têm NF (não devem aparecer na listagem)
+      const filtered = rows.filter((w) => {
+        const info = waveInvoiceMap.get(w.id);
+        if (!info) return true; // sem pedidos = mantém
+        return !info.allHaveInvoice; // remove se todos têm NF
+      });
+
+      // Adicionar flag anyHasInvoice para o frontend (bloqueia botão Desfazer)
+      return filtered.map((w) => ({
+        ...w,
+        anyOrderHasInvoice: waveInvoiceMap.get(w.id)?.anyHasInvoice ?? false,
+      }));
     }),
 
   /**
