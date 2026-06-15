@@ -324,4 +324,174 @@ export const stageRouter = {
         tenantId,
       });
     }),
+
+  /**
+   * Registrar conferência completa (Global Admin only)
+   * Marca o pedido como 'staged' sem exigir bipagem item a item
+   */
+  completeConferenceFull: protectedProcedure
+    .input(z.object({ customerOrderNumber: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      if ((ctx.user as any).tenantId !== 1) {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Funcionalidade restrita ao Global Admin." });
+      }
+      const { getDb } = await import("./db");
+      const { eq, and } = await import("drizzle-orm");
+      const {
+        pickingOrders, stageChecks, pickingWaves,
+      } = await import("../drizzle/schema");
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const [order] = await db
+        .select({ id: pickingOrders.id, status: pickingOrders.status, waveId: pickingOrders.waveId, tenantId: pickingOrders.tenantId })
+        .from(pickingOrders)
+        .where(eq(pickingOrders.customerOrderNumber, input.customerOrderNumber))
+        .limit(1);
+
+      if (!order) throw new Error(`Pedido '${input.customerOrderNumber}' não encontrado.`);
+      if (order.status === "staged") throw new Error("Pedido já está conferido (staged).");
+      if (order.status !== "picked") throw new Error(`Pedido deve estar com status 'picked'. Status atual: '${order.status}'.`);
+
+      // Cancelar conferência in_progress se existir
+      const [existingCheck] = await db
+        .select({ id: stageChecks.id })
+        .from(stageChecks)
+        .where(and(eq(stageChecks.pickingOrderId, order.id), eq(stageChecks.status, "in_progress")))
+        .limit(1);
+      if (existingCheck) {
+        await db.update(stageChecks)
+          .set({ status: "completed", completedAt: new Date(), notes: "Finalizado via Registrar conferência completa (Global Admin)" })
+          .where(eq(stageChecks.id, existingCheck.id));
+      } else {
+        await db.insert(stageChecks).values({
+          tenantId: order.tenantId,
+          pickingOrderId: order.id,
+          customerOrderNumber: input.customerOrderNumber,
+          operatorId: ctx.user.id,
+          status: "completed",
+          completedAt: new Date(),
+          notes: "Registrado via Registrar conferência completa (Global Admin)",
+        });
+      }
+
+      await db.update(pickingOrders)
+        .set({ status: "staged" })
+        .where(eq(pickingOrders.id, order.id));
+
+      if (order.waveId) {
+        const waveOrders = await db
+          .select({ id: pickingOrders.id, status: pickingOrders.status })
+          .from(pickingOrders)
+          .where(eq(pickingOrders.waveId, order.waveId));
+        const allStaged = waveOrders.every(o => o.status === "staged" || o.id === order.id);
+        if (allStaged) {
+          await db.update(pickingWaves)
+            .set({ status: "staged" })
+            .where(eq(pickingWaves.id, order.waveId));
+        }
+      }
+
+      console.log(`[STAGE] completeConferenceFull: pedido ${input.customerOrderNumber} marcado como staged por userId=${ctx.user.id}`);
+      return { ok: true, message: `Conferência do pedido ${input.customerOrderNumber} registrada como completa!` };
+    }),
+
+  /**
+   * Desfazer conferência completa (Global Admin only)
+   * Reverte pedido de 'staged' para 'picked' e restaura movimentações de estoque
+   */
+  undoConferenceFull: protectedProcedure
+    .input(z.object({ customerOrderNumber: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      if ((ctx.user as any).tenantId !== 1) {
+        const { TRPCError } = await import("@trpc/server");
+        throw new TRPCError({ code: "FORBIDDEN", message: "Funcionalidade restrita ao Global Admin." });
+      }
+      const { getDb } = await import("./db");
+      const { eq, and } = await import("drizzle-orm");
+      const {
+        pickingOrders, stageChecks, pickingWaves,
+        inventory, inventoryMovements,
+      } = await import("../drizzle/schema");
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const [order] = await db
+        .select({ id: pickingOrders.id, status: pickingOrders.status, waveId: pickingOrders.waveId, tenantId: pickingOrders.tenantId })
+        .from(pickingOrders)
+        .where(eq(pickingOrders.customerOrderNumber, input.customerOrderNumber))
+        .limit(1);
+
+      if (!order) throw new Error(`Pedido '${input.customerOrderNumber}' não encontrado.`);
+      if (order.status !== "staged") throw new Error(`Não é possível desfazer: pedido está com status '${order.status}', esperado 'staged'.`);
+
+      // Buscar movimentações de picking para reverter
+      const movements = await db
+        .select()
+        .from(inventoryMovements)
+        .where(
+          and(
+            eq(inventoryMovements.referenceType, "picking_order"),
+            eq(inventoryMovements.referenceId, order.id),
+            eq(inventoryMovements.movementType, "picking")
+          )
+        );
+
+      for (const mov of movements) {
+        if (!mov.fromLocationId || !mov.toLocationId) continue;
+
+        // Subtrair do endereço de destino (EXP)
+        const [destInv] = await db
+          .select({ id: inventory.id, quantity: inventory.quantity })
+          .from(inventory)
+          .where(and(
+            eq(inventory.locationId, mov.toLocationId),
+            eq(inventory.productId, mov.productId),
+            eq(inventory.tenantId, order.tenantId)
+          ))
+          .limit(1);
+        if (destInv) {
+          await db.update(inventory)
+            .set({ quantity: Math.max(0, destInv.quantity - mov.quantity) })
+            .where(eq(inventory.id, destInv.id));
+        }
+
+        // Devolver ao endereço de origem (STORAGE)
+        const [srcInv] = await db
+          .select({ id: inventory.id, quantity: inventory.quantity })
+          .from(inventory)
+          .where(and(
+            eq(inventory.locationId, mov.fromLocationId),
+            eq(inventory.productId, mov.productId),
+            eq(inventory.tenantId, order.tenantId)
+          ))
+          .limit(1);
+        if (srcInv) {
+          await db.update(inventory)
+            .set({ quantity: srcInv.quantity + mov.quantity, status: "available" })
+            .where(eq(inventory.id, srcInv.id));
+        }
+      }
+
+      // Reverter stageChecks para in_progress
+      await db.update(stageChecks)
+        .set({ status: "in_progress", completedAt: null })
+        .where(and(eq(stageChecks.pickingOrderId, order.id), eq(stageChecks.status, "completed")));
+
+      // Reverter status do pedido para 'picked'
+      await db.update(pickingOrders)
+        .set({ status: "picked" })
+        .where(eq(pickingOrders.id, order.id));
+
+      // Reverter onda para 'picked'
+      if (order.waveId) {
+        await db.update(pickingWaves)
+          .set({ status: "picked" })
+          .where(and(eq(pickingWaves.id, order.waveId), eq(pickingWaves.status, "staged")));
+      }
+
+      console.log(`[STAGE] undoConferenceFull: pedido ${input.customerOrderNumber} revertido para 'picked' por userId=${ctx.user.id}`);
+      return { ok: true, message: `Conferência do pedido ${input.customerOrderNumber} desfeita. Pedido retornado para status 'picked'.` };
+    }),
 };

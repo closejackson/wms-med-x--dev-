@@ -31,6 +31,7 @@ import { Badge } from "../../components/ui/badge";
 import { BarcodeScanner } from "../../components/BarcodeScanner";
 import { trpc } from "../../lib/trpc";
 import { toast } from "sonner";
+import { useAuth } from "../../_core/hooks/useAuth";
 import {
   Camera,
   XCircle,
@@ -39,6 +40,9 @@ import {
   Undo2,
   Lock,
   LogOut,
+  Zap,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -119,6 +123,40 @@ export function CollectorStage() {
     conversionFactor: number;
     quantityAdded: number;
   } | null>(null);
+
+  const { user } = useAuth();
+  const isGlobalAdmin = (user as any)?.tenantId === 1;
+
+  // Modal: Registrar conferência completa
+  const [showCompleteFullModal, setShowCompleteFullModal] = useState(false);
+  // Modal: Desfazer conferência completa
+  const [showUndoCompleteModal, setShowUndoCompleteModal] = useState(false);
+
+  // Mutation: registrar conferência completa
+  const completeConferenceFullMut = trpc.stage.completeConferenceFull.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowCompleteFullModal(false);
+      handleNewOrder();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setShowCompleteFullModal(false);
+    },
+  });
+
+  // Mutation: desfazer conferência completa
+  const undoConferenceFullMut = trpc.stage.undoConferenceFull.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setShowUndoCompleteModal(false);
+      handleNewOrder();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setShowUndoCompleteModal(false);
+    },
+  });
 
   // ── Mutations de lock ──────────────────────────────────────────────────────
   const heartbeatMut = trpc.stage.stageHeartbeat.useMutation();
@@ -557,6 +595,118 @@ export function CollectorStage() {
               >
                 {startCheckMut.isPending ? "Iniciando..." : "Iniciar Conferência"}
               </Button>
+
+              {/* ── Botões de admin (Global Admin only) ─────────────────── */}
+              {isGlobalAdmin && orderNumber && (
+                <div className="border-t pt-3 space-y-2">
+                  {/* Registrar conferência completa: só se pedido está 'picked' */}
+                  {orderQuery.data && (orderQuery.data.order as any).status === "picked" && (
+                    <button
+                      className="flex items-center gap-2 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors w-full"
+                      onClick={() => setShowCompleteFullModal(true)}
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      Registrar conferência completa
+                    </button>
+                  )}
+                  {/* Desfazer conferência completa: só se pedido está 'staged' */}
+                  {orderQuery.data && (orderQuery.data.order as any).status === "staged" && (
+                    <button
+                      className="flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-800 transition-colors w-full"
+                      onClick={() => setShowUndoCompleteModal(true)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Desfazer conferência completa
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Modal: Registrar conferência completa */}
+              {showCompleteFullModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-amber-100 rounded-full p-2">
+                        <Zap className="h-5 w-5 text-amber-700" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Registrar conferência completa</p>
+                        <p className="text-xs text-gray-500">Pedido {orderNumber}</p>
+                      </div>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <p className="text-sm text-amber-800">
+                        Esta ação marca o pedido como <strong>conferido (staged)</strong> sem exigir bipagem item a item. Use apenas quando a conferência física já foi realizada.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowCompleteFullModal(false)}
+                        disabled={completeConferenceFullMut.isPending}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                        onClick={() => completeConferenceFullMut.mutate({ customerOrderNumber: orderNumber })}
+                        disabled={completeConferenceFullMut.isPending}
+                      >
+                        {completeConferenceFullMut.isPending ? (
+                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Registrando...</>
+                        ) : (
+                          <><Zap className="h-4 w-4 mr-2" />Confirmar</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal: Desfazer conferência completa */}
+              {showUndoCompleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-red-100 rounded-full p-2">
+                        <RotateCcw className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">Desfazer conferência completa</p>
+                        <p className="text-xs text-gray-500">Pedido {orderNumber}</p>
+                      </div>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-sm text-red-800">
+                        Esta ação <strong>reverte</strong> o pedido para o status <em>picked</em> e restaura as movimentações de estoque. Use apenas se a conferência foi registrada por engano.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowUndoCompleteModal(false)}
+                        disabled={undoConferenceFullMut.isPending}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => undoConferenceFullMut.mutate({ customerOrderNumber: orderNumber })}
+                        disabled={undoConferenceFullMut.isPending}
+                      >
+                        {undoConferenceFullMut.isPending ? (
+                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Revertendo...</>
+                        ) : (
+                          <><RotateCcw className="h-4 w-4 mr-2" />Desfazer</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
