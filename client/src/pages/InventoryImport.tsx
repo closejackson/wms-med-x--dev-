@@ -180,7 +180,11 @@ export default function InventoryImport() {
       try {
         const data = new Uint8Array(evt.target!.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array", cellDates: false });
-        const sheetName = workbook.SheetNames[0];
+        // Buscar aba "Saldos" explicitamente; fallback para primeira aba que não começa com "_"
+        const sheetName =
+          workbook.SheetNames.find((n) => n.toLowerCase() === "saldos") ??
+          workbook.SheetNames.find((n) => !n.startsWith("_")) ??
+          workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
