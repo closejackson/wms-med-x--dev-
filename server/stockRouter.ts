@@ -309,7 +309,9 @@ export const stockRouter = router({
         { header: 'SKU', key: 'sku', width: 15 },
         { header: 'Produto', key: 'product', width: 40 },
         { header: 'Lote', key: 'batch', width: 15 },
-        { header: 'Quantidade', key: 'quantity', width: 12 },
+        { header: 'Quantidade', key: 'quantity', width: 14 },
+        { header: 'Qtd. Reservada', key: 'reservedQuantity', width: 16 },
+        { header: 'Qtd. Disponível', key: 'availableQuantity', width: 16 },
         { header: 'Unidade', key: 'unit', width: 10 },
         { header: 'Endereço', key: 'location', width: 15 },
         { header: 'Zona', key: 'zone', width: 10 },
@@ -329,11 +331,15 @@ export const stockRouter = router({
       // Adicionar dados — filtrar linhas sem produto (endereços vazios do LEFT JOIN)
       const positionsWithProduct = positions.filter((pos: any) => pos.productId != null);
       positionsWithProduct.forEach((pos: any) => {
+        const reserved = pos.reservedQuantity ?? 0;
+        const available = (pos.quantity ?? 0) - reserved;
         worksheet.addRow({
           sku: pos.productSku,
           product: pos.productDescription,
           batch: pos.batch || 'N/A',
           quantity: pos.quantity,
+          reservedQuantity: reserved,
+          availableQuantity: available,
           unit: 'UN',
           location: pos.locationCode,
           zone: pos.zoneName || 'N/A',
