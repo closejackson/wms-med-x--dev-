@@ -248,6 +248,11 @@ export function CollectorPicking() {
   const { user } = useAuth();
   const isGlobalAdmin = (user as any)?.tenantId === 1;
 
+  // Modal de confirmação para "Desfazer separação completa"
+  const [showUndoCompleteModal, setShowUndoCompleteModal] = useState(false);
+  const [undoCompleteTargetId, setUndoCompleteTargetId] = useState<number | null>(null);
+  const [undoCompleteWaveNumber, setUndoCompleteWaveNumber] = useState("");
+
   // Mutation: registrar separação completa (Global Admin only)
   const completeOrderFullMut = trpc.collectorPicking.completeOrderFull.useMutation({
     onSuccess: (data) => {
@@ -260,6 +265,21 @@ export function CollectorPicking() {
     onError: (err) => {
       toast.error(err.message);
       setShowCompleteFullModal(false);
+    },
+  });
+
+  // Mutation: desfazer separação completa (Global Admin only)
+  const undoCompleteOrderFullMut = trpc.collectorPicking.undoCompleteOrderFull.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      utils.collectorPicking.listOrders.invalidate();
+      setShowUndoCompleteModal(false);
+      setUndoCompleteTargetId(null);
+      setUndoCompleteWaveNumber("");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+      setShowUndoCompleteModal(false);
     },
   });
 
@@ -937,18 +957,33 @@ export function CollectorPicking() {
                   </div>
                 </button>
                 {isGlobalAdmin && (
-                  <div className="border-t border-gray-100 px-4 py-2 bg-amber-50">
-                    <button
-                      className="flex items-center gap-2 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors"
-                      onClick={() => {
-                        setCompleteFullTargetId(order.id);
-                        setCompleteFullWaveNumber(order.waveNumber);
-                        setShowCompleteFullModal(true);
-                      }}
-                    >
-                      <Zap className="h-3.5 w-3.5" />
-                      Registrar separação completa
-                    </button>
+                  <div className="border-t border-gray-100 px-4 py-2 bg-amber-50 flex items-center gap-4">
+                    {order.status !== "picked" && (
+                      <button
+                        className="flex items-center gap-2 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors"
+                        onClick={() => {
+                          setCompleteFullTargetId(order.id);
+                          setCompleteFullWaveNumber(order.waveNumber);
+                          setShowCompleteFullModal(true);
+                        }}
+                      >
+                        <Zap className="h-3.5 w-3.5" />
+                        Registrar separação completa
+                      </button>
+                    )}
+                    {order.status === "picked" && (
+                      <button
+                        className="flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-800 transition-colors"
+                        onClick={() => {
+                          setUndoCompleteTargetId(order.id);
+                          setUndoCompleteWaveNumber(order.waveNumber);
+                          setShowUndoCompleteModal(true);
+                        }}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Desfazer separação completa
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1000,6 +1035,57 @@ export function CollectorPicking() {
                       <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando...</>
                     ) : (
                       <><Zap className="h-4 w-4 mr-2" />Confirmar</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de confirmação — Desfazer separação completa */}
+          {showUndoCompleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 rounded-full p-2">
+                    <RotateCcw className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">Desfazer separação completa</p>
+                    <p className="text-xs text-gray-500">Onda {undoCompleteWaveNumber}</p>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                  <p className="text-sm text-red-800">
+                    Esta ação <strong>reverte</strong> todas as alocações para o status <em>pendente</em> e retorna a onda para separação. Use apenas se a confirmação foi feita por engano.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowUndoCompleteModal(false);
+                      setUndoCompleteTargetId(null);
+                      setUndoCompleteWaveNumber("");
+                    }}
+                    disabled={undoCompleteOrderFullMut.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      if (undoCompleteTargetId) {
+                        undoCompleteOrderFullMut.mutate({ pickingOrderId: undoCompleteTargetId });
+                      }
+                    }}
+                    disabled={undoCompleteOrderFullMut.isPending}
+                  >
+                    {undoCompleteOrderFullMut.isPending ? (
+                      <><Loader2 className="h-4 w-4 animate-spin mr-2" />Revertendo...</>
+                    ) : (
+                      <><RotateCcw className="h-4 w-4 mr-2" />Desfazer</>
                     )}
                   </Button>
                 </div>

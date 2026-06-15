@@ -191,7 +191,7 @@ export const collectorPickingRouter = router({
 
       const { effectiveTenantId, isGlobalAdmin } = ctx;
 
-      const statusFilter = sql`${pickingWaves.status} IN ('pending', 'picking')`;
+      const statusFilter = sql`${pickingWaves.status} IN ('pending', 'picking', 'picked')`;
 
       const rows = await db
         .select({
@@ -1904,6 +1904,110 @@ export const collectorPickingRouter = router({
         message: "Separação registrada como completa com sucesso!",
         ordersUpdated: orderIds.length,
         allocationsUpdated: pendingAllocs.length,
+      };
+    }),
+
+  // ─── Desfazer separação completa (Global Admin only) ──────────────────────
+  undoCompleteOrderFull: protectedProcedure
+    .input(z.object({ pickingOrderId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Restrito a Global Admin
+      if ((ctx.user as any).tenantId !== 1) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Funcionalidade restrita ao Global Admin." });
+      }
+
+      const waveId = input.pickingOrderId;
+
+      // Verificar se a onda está em status 'picked'
+      const [wave] = await db
+        .select({ id: pickingWaves.id, status: pickingWaves.status })
+        .from(pickingWaves)
+        .where(eq(pickingWaves.id, waveId))
+        .limit(1);
+
+      if (!wave) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Onda não encontrada." });
+      }
+
+      if (wave.status !== "picked") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Não é possível desfazer: onda está com status '${wave.status}', esperado 'picked'.`,
+        });
+      }
+
+      // Buscar pedidos da onda
+      const waveOrders = await db
+        .select({ id: pickingOrders.id })
+        .from(pickingOrders)
+        .where(eq(pickingOrders.waveId, waveId));
+
+      const orderIds = waveOrders.length > 0
+        ? waveOrders.map(o => o.id)
+        : [waveId];
+
+      // Reverter alocações: picked → pending, pickedQuantity → 0
+      for (const orderId of orderIds) {
+        await db
+          .update(pickingAllocations)
+          .set({ pickedQuantity: 0, status: "pending" })
+          .where(
+            and(
+              eq(pickingAllocations.pickingOrderId, orderId),
+              eq(pickingAllocations.status, "picked")
+            )
+          );
+      }
+
+      // Reverter pickingOrderItems: picked → pending, pickedQuantity → 0
+      for (const orderId of orderIds) {
+        await db
+          .update(pickingOrderItems)
+          .set({ pickedQuantity: 0, status: "pending", pickedBy: null, pickedAt: null })
+          .where(
+            and(
+              eq(pickingOrderItems.pickingOrderId, orderId),
+              eq(pickingOrderItems.status, "picked")
+            )
+          );
+      }
+
+      // Reverter pickingWaveItems: picked → pending, pickedQuantity → 0
+      await db
+        .update(pickingWaveItems)
+        .set({ pickedQuantity: 0, status: "pending", pickedAt: null })
+        .where(
+          and(
+            eq(pickingWaveItems.waveId, waveId),
+            eq(pickingWaveItems.status, "picked")
+          )
+        );
+
+      // Reverter status dos pedidos para 'picking'
+      for (const orderId of orderIds) {
+        await db
+          .update(pickingOrders)
+          .set({ status: "picking", pickedBy: null, pickedAt: null })
+          .where(eq(pickingOrders.id, orderId));
+      }
+
+      // Reverter status da onda para 'picking'
+      await db
+        .update(pickingWaves)
+        .set({ status: "picking", pickedBy: null, pickedAt: null })
+        .where(eq(pickingWaves.id, waveId));
+
+      console.log(
+        `[PICKING] Onda ${waveId} revertida via undoCompleteOrderFull por Global Admin (userId=${ctx.user.id})`
+      );
+
+      return {
+        ok: true,
+        message: "Separação completa desfeita. Onda revertida para status 'em separação'.",
+        ordersReverted: orderIds.length,
       };
     }),
 });
