@@ -339,7 +339,7 @@ export const stageRouter = {
       const { getDb } = await import("./db");
       const { eq, and, isNull, like, or, sql } = await import("drizzle-orm");
       const {
-        pickingOrders, stageChecks, pickingWaves, pickingAllocations,
+        pickingOrders, stageChecks, stageCheckItems, pickingWaves, pickingAllocations,
         inventory, inventoryMovements, warehouseLocations, products, tenants,
       } = await import("../drizzle/schema");
       const { getUniqueCode } = await import("./utils/uniqueCode");
@@ -527,12 +527,14 @@ export const stageRouter = {
         .from(stageChecks)
         .where(and(eq(stageChecks.pickingOrderId, order.id), eq(stageChecks.status, "in_progress")))
         .limit(1);
+      let stageCheckId: number;
       if (existingCheck) {
         await db.update(stageChecks)
           .set({ status: "completed", completedAt: new Date(), notes: "Finalizado via Registrar conferência completa (Global Admin)" })
           .where(eq(stageChecks.id, existingCheck.id));
+        stageCheckId = existingCheck.id;
       } else {
-        await db.insert(stageChecks).values({
+        const [inserted] = await db.insert(stageChecks).values({
           tenantId: order.tenantId,
           pickingOrderId: order.id,
           customerOrderNumber: input.customerOrderNumber,
@@ -541,6 +543,49 @@ export const stageRouter = {
           completedAt: new Date(),
           notes: "Registrado via Registrar conferência completa (Global Admin)",
         });
+        stageCheckId = (inserted as any).insertId;
+      }
+
+      // Criar stageCheckItems para cada alocação (necessário para baixa de estoque no finalizeManifest)
+      // Buscar produto (sku e nome) para cada alocação
+      for (const alloc of allocations) {
+        const [prod] = await db
+          .select({ sku: products.sku, description: products.description })
+          .from(products)
+          .where(eq(products.id, alloc.productId))
+          .limit(1);
+        if (!prod) continue;
+
+        // Verificar se já existe item para este produto/lote neste stageCheck
+        const [existingItem] = await db
+          .select({ id: stageCheckItems.id })
+          .from(stageCheckItems)
+          .where(and(
+            eq(stageCheckItems.stageCheckId, stageCheckId),
+            eq(stageCheckItems.productId, alloc.productId),
+            alloc.batch ? eq(stageCheckItems.batch, alloc.batch) : isNull(stageCheckItems.batch),
+          ))
+          .limit(1);
+
+        if (existingItem) {
+          // Atualizar quantidade se já existe
+          await db.update(stageCheckItems)
+            .set({ checkedQuantity: alloc.quantity, expectedQuantity: alloc.quantity, divergence: 0 })
+            .where(eq(stageCheckItems.id, existingItem.id));
+        } else {
+          const batchVal: string | undefined = (alloc.batch as string | null | undefined) ?? undefined;
+          await db.insert(stageCheckItems).values({
+            stageCheckId,
+            productId: alloc.productId,
+            productSku: prod.sku as string,
+            productName: (prod.description as string | null) ?? "",
+            batch: batchVal,
+            uniqueCode: getUniqueCode(prod.sku as string, batchVal),
+            expectedQuantity: alloc.quantity,
+            checkedQuantity: alloc.quantity,
+            divergence: 0,
+          });
+        }
       }
 
       // -----------------------------------------------------------------------
