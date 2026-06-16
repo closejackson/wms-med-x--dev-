@@ -24,6 +24,7 @@ import {
   tenants,
   labelAssociations,
   inventory,
+  inventoryMovements,
   pickingOrderItems,
   pickingWaveItems,
   invoices,
@@ -1897,6 +1898,35 @@ export const collectorPickingRouter = router({
           .update(pickingAllocations)
           .set({ pickedQuantity: alloc.quantity, status: "picked" })
           .where(eq(pickingAllocations.id, alloc.id));
+
+        // Registrar movimentação de estoque (picking)
+        const invConds: any[] = [
+          eq(inventory.productId, alloc.productId),
+          eq(inventory.locationId, alloc.locationId),
+        ];
+        if (alloc.batch) invConds.push(eq(inventory.batch, alloc.batch));
+        const [srcInv] = await db
+          .select({ id: inventory.id, tenantId: inventory.tenantId, batch: inventory.batch, uniqueCode: inventory.uniqueCode })
+          .from(inventory)
+          .where(and(...invConds))
+          .limit(1);
+
+        await db.insert(inventoryMovements).values({
+          tenantId: srcInv?.tenantId ?? null,
+          productId: alloc.productId,
+          batch: alloc.batch,
+          uniqueCode: srcInv?.uniqueCode ?? null,
+          serialNumber: null,
+          fromLocationId: alloc.locationId,
+          toLocationId: null,
+          quantity: alloc.quantity,
+          movementType: "picking",
+          referenceType: "picking_order",
+          referenceId: alloc.pickingOrderId,
+          performedBy: ctx.user.id,
+          notes: `Separação registrada via Registrar separação completa (Global Admin) - Onda ${waveId}`,
+          conversionSource: "manual",
+        });
       }
 
       // Marcar pickingOrderItems pendentes como picked
@@ -1993,6 +2023,15 @@ export const collectorPickingRouter = router({
 
       // Reverter alocações: picked → pending, pickedQuantity → 0
       for (const orderId of orderIds) {
+        // Buscar alocações picked antes de reverter para registrar movimentação
+        const pickedAllocs = await db
+          .select()
+          .from(pickingAllocations)
+          .where(and(
+            eq(pickingAllocations.pickingOrderId, orderId),
+            eq(pickingAllocations.status, "picked")
+          ));
+
         await db
           .update(pickingAllocations)
           .set({ pickedQuantity: 0, status: "pending" })
@@ -2002,6 +2041,37 @@ export const collectorPickingRouter = router({
               eq(pickingAllocations.status, "picked")
             )
           );
+
+        // Registrar movimentação de estorno (adjustment)
+        for (const alloc of pickedAllocs) {
+          const invConds: any[] = [
+            eq(inventory.productId, alloc.productId),
+            eq(inventory.locationId, alloc.locationId),
+          ];
+          if (alloc.batch) invConds.push(eq(inventory.batch, alloc.batch));
+          const [srcInv] = await db
+            .select({ id: inventory.id, tenantId: inventory.tenantId, uniqueCode: inventory.uniqueCode })
+            .from(inventory)
+            .where(and(...invConds))
+            .limit(1);
+
+          await db.insert(inventoryMovements).values({
+            tenantId: srcInv?.tenantId ?? null,
+            productId: alloc.productId,
+            batch: alloc.batch,
+            uniqueCode: srcInv?.uniqueCode ?? null,
+            serialNumber: null,
+            fromLocationId: null,
+            toLocationId: alloc.locationId,
+            quantity: alloc.quantity,
+            movementType: "adjustment",
+            referenceType: "picking_order",
+            referenceId: orderId,
+            performedBy: ctx.user.id,
+            notes: `Estorno via Desfazer separação completa (Global Admin) - Onda ${waveId}`,
+            conversionSource: "manual",
+          });
+        }
       }
 
       // Reverter pickingOrderItems: picked → pending, pickedQuantity → 0

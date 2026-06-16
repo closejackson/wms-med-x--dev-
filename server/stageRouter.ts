@@ -642,6 +642,24 @@ export const stageRouter = {
             .set({ quantity: srcInv.quantity + mov.quantity, status: "available" })
             .where(eq(inventory.id, srcInv.id));
         }
+
+        // Registrar estorno da movimentação
+        await db.insert(inventoryMovements).values({
+          tenantId: order.tenantId,
+          productId: mov.productId,
+          batch: mov.batch,
+          uniqueCode: mov.uniqueCode,
+          serialNumber: null,
+          fromLocationId: mov.toLocationId,   // EXP → STORAGE (invertido)
+          toLocationId: mov.fromLocationId,
+          quantity: mov.quantity,
+          movementType: "adjustment",
+          referenceType: "picking_order",
+          referenceId: order.id,
+          performedBy: ctx.user.id,
+          notes: `Estorno via Desfazer conferência completa (Global Admin) - Pedido ${input.customerOrderNumber}`,
+          conversionSource: "manual",
+        });
       }
 
       // Reverter stageChecks para in_progress
