@@ -337,15 +337,17 @@ export const stageRouter = {
         throw new TRPCError({ code: "FORBIDDEN", message: "Funcionalidade restrita ao Global Admin." });
       }
       const { getDb } = await import("./db");
-      const { eq, and } = await import("drizzle-orm");
+      const { eq, and, isNull, like, or, sql } = await import("drizzle-orm");
       const {
-        pickingOrders, stageChecks, pickingWaves,
+        pickingOrders, stageChecks, pickingWaves, pickingAllocations,
+        inventory, inventoryMovements, warehouseLocations, products, tenants,
       } = await import("../drizzle/schema");
+      const { getUniqueCode } = await import("./utils/uniqueCode");
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
       const [order] = await db
-        .select({ id: pickingOrders.id, status: pickingOrders.status, waveId: pickingOrders.waveId, tenantId: pickingOrders.tenantId })
+        .select({ id: pickingOrders.id, status: pickingOrders.status, waveId: pickingOrders.waveId, tenantId: pickingOrders.tenantId, customerOrderNumber: pickingOrders.customerOrderNumber })
         .from(pickingOrders)
         .where(eq(pickingOrders.customerOrderNumber, input.customerOrderNumber))
         .limit(1);
@@ -354,7 +356,172 @@ export const stageRouter = {
       if (order.status === "staged") throw new Error("Pedido já está conferido (staged).");
       if (order.status !== "picked") throw new Error(`Pedido deve estar com status 'picked'. Status atual: '${order.status}'.`);
 
-      // Cancelar conferência in_progress se existir
+      // -----------------------------------------------------------------------
+      // 1. Determinar endereço de expedição (EXP) do cliente
+      // -----------------------------------------------------------------------
+      const [tenant] = await db
+        .select({ shippingAddress: tenants.shippingAddress })
+        .from(tenants)
+        .where(eq(tenants.id, order.tenantId))
+        .limit(1);
+
+      let shippingLocation: { id: number; code: string };
+
+      if (!tenant?.shippingAddress) {
+        const [autoLoc] = await db
+          .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+          .from(warehouseLocations)
+          .where(and(
+            like(warehouseLocations.code, "EXP%"),
+            eq(warehouseLocations.tenantId, order.tenantId),
+          ))
+          .limit(1);
+        if (!autoLoc) throw new Error("Nenhum endereço de expedição (EXP) encontrado para este cliente.");
+        shippingLocation = autoLoc;
+      } else {
+        const [cfgLoc] = await db
+          .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+          .from(warehouseLocations)
+          .where(and(
+            eq(warehouseLocations.code, tenant.shippingAddress),
+            eq(warehouseLocations.tenantId, order.tenantId),
+          ))
+          .limit(1);
+        if (!cfgLoc) throw new Error(`Endereço de expedição '${tenant.shippingAddress}' não encontrado.`);
+        shippingLocation = cfgLoc;
+      }
+
+      // -----------------------------------------------------------------------
+      // 2. Buscar todas as alocações do pedido e movimentar STORAGE → EXP
+      // -----------------------------------------------------------------------
+      const allocations = await db
+        .select({
+          id: pickingAllocations.id,
+          productId: pickingAllocations.productId,
+          locationId: pickingAllocations.locationId,
+          quantity: pickingAllocations.quantity,
+          batch: pickingAllocations.batch,
+        })
+        .from(pickingAllocations)
+        .where(eq(pickingAllocations.pickingOrderId, order.id));
+
+      for (const alloc of allocations) {
+        const invConditions: any[] = [
+          eq(inventory.productId, alloc.productId),
+          eq(inventory.locationId, alloc.locationId),
+        ];
+        if (alloc.batch) {
+          invConditions.push(eq(inventory.batch, alloc.batch));
+        } else {
+          invConditions.push(isNull(inventory.batch));
+        }
+
+        const [srcInv] = await db
+          .select({
+            id: inventory.id,
+            locationId: inventory.locationId,
+            productId: inventory.productId,
+            productSku: products.sku,
+            batch: inventory.batch,
+            expiryDate: inventory.expiryDate,
+            quantity: inventory.quantity,
+            tenantId: inventory.tenantId,
+            status: inventory.status,
+          })
+          .from(inventory)
+          .leftJoin(products, eq(inventory.productId, products.id))
+          .where(and(...invConditions))
+          .limit(1);
+
+        if (!srcInv) {
+          console.warn(`[STAGE] completeConferenceFull: estoque não encontrado para produto ${alloc.productId} lote ${alloc.batch} end ${alloc.locationId}`);
+          continue;
+        }
+
+        const qty = Math.min(alloc.quantity, srcInv.quantity);
+        if (qty <= 0) continue;
+
+        // Subtrair do STORAGE
+        const newQty = srcInv.quantity - qty;
+        await db.update(inventory)
+          .set({
+            quantity: newQty,
+            reservedQuantity: 0,
+            status: newQty === 0 ? "available" : srcInv.status,
+          })
+          .where(eq(inventory.id, srcInv.id));
+
+        // Liberar endereço se ficou vazio
+        if (newQty === 0) {
+          const [others] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(inventory)
+            .where(and(
+              eq(inventory.locationId, srcInv.locationId),
+              sql`${inventory.quantity} > 0`,
+              sql`${inventory.id} != ${srcInv.id}`,
+            ));
+          if (others && others.count === 0) {
+            await db.update(warehouseLocations)
+              .set({ status: "available" })
+              .where(eq(warehouseLocations.id, srcInv.locationId));
+          }
+        }
+
+        // Adicionar ao EXP
+        const expConditions: any[] = [
+          eq(inventory.locationId, shippingLocation.id),
+          eq(inventory.productId, srcInv.productId),
+          eq(inventory.tenantId, order.tenantId),
+        ];
+        if (srcInv.batch) expConditions.push(eq(inventory.batch, srcInv.batch));
+
+        const [existingExp] = await db
+          .select({ id: inventory.id, quantity: inventory.quantity })
+          .from(inventory)
+          .where(and(...expConditions))
+          .limit(1);
+
+        if (existingExp) {
+          await db.update(inventory)
+            .set({ quantity: existingExp.quantity + qty })
+            .where(eq(inventory.id, existingExp.id));
+        } else {
+          await db.insert(inventory).values({
+            locationId: shippingLocation.id,
+            productId: srcInv.productId,
+            batch: srcInv.batch,
+            expiryDate: srcInv.expiryDate,
+            quantity: qty,
+            tenantId: order.tenantId,
+            status: "available",
+            uniqueCode: getUniqueCode(srcInv.productSku || "", srcInv.batch || ""),
+            locationZone: "EXP",
+          });
+        }
+
+        // Registrar movimentação
+        await db.insert(inventoryMovements).values({
+          tenantId: order.tenantId,
+          productId: srcInv.productId,
+          batch: srcInv.batch,
+          uniqueCode: getUniqueCode(srcInv.productSku || "", srcInv.batch || ""),
+          serialNumber: null,
+          fromLocationId: srcInv.locationId,
+          toLocationId: shippingLocation.id,
+          quantity: qty,
+          movementType: "picking",
+          referenceType: "picking_order",
+          referenceId: order.id,
+          performedBy: ctx.user.id,
+          notes: `Movimentação automática via Registrar conferência completa (Global Admin) - Pedido ${order.customerOrderNumber}`,
+          conversionSource: "manual",
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // 3. Registrar / atualizar stageCheck
+      // -----------------------------------------------------------------------
       const [existingCheck] = await db
         .select({ id: stageChecks.id })
         .from(stageChecks)
@@ -376,6 +543,9 @@ export const stageRouter = {
         });
       }
 
+      // -----------------------------------------------------------------------
+      // 4. Atualizar status do pedido e da onda
+      // -----------------------------------------------------------------------
       await db.update(pickingOrders)
         .set({ status: "staged" })
         .where(eq(pickingOrders.id, order.id));
@@ -393,8 +563,8 @@ export const stageRouter = {
         }
       }
 
-      console.log(`[STAGE] completeConferenceFull: pedido ${input.customerOrderNumber} marcado como staged por userId=${ctx.user.id}`);
-      return { ok: true, message: `Conferência do pedido ${input.customerOrderNumber} registrada como completa!` };
+      console.log(`[STAGE] completeConferenceFull: pedido ${input.customerOrderNumber} movimentado para ${shippingLocation.code} e marcado como staged por userId=${ctx.user.id}`);
+      return { ok: true, message: `Conferência do pedido ${input.customerOrderNumber} registrada! Produtos movimentados para ${shippingLocation.code}.` };
     }),
 
   /**
