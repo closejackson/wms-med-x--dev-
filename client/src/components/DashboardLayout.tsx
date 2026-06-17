@@ -30,7 +30,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { useBreadcrumb } from "@/hooks/useBreadcrumb";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, Package, Warehouse, TruckIcon, ClipboardList, Shield, Wrench, FileUp, Activity } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, Package, Warehouse, TruckIcon, ClipboardList, Shield, Wrench, FileUp, Activity, ScanBarcode } from "lucide-react";
 import { CSSProperties, Fragment, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -47,6 +47,7 @@ const menuItems = [
   { icon: Users, label: "Usuários", path: "/users" },
   { icon: Shield, label: "Perfis", path: "/roles" },
   { icon: Wrench, label: "Manutenção", path: "/maintenance" },
+  { icon: ScanBarcode, label: "Inventário", path: "/inventory-module" },
   { icon: FileUp, label: "Importar Saldos", path: "/inventory-import" },
   { icon: Activity, label: "Intra-Hospitalar", path: "/intra-hospitalar" },
 ];
