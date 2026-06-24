@@ -36,6 +36,8 @@ import {
   MapPin,
   TrendingUp,
   TrendingDown,
+  Tag,
+  Search,
 } from "lucide-react";
 import { trpc } from "../../lib/trpc";
 import { toast } from "sonner";
@@ -99,6 +101,15 @@ export function CollectorInventory() {
   const [prevAttemptCounts, setPrevAttemptCounts] = useState<DivergenceResult["counts"] | null>(null);
   const [confirmEmptyOpen, setConfirmEmptyOpen] = useState(false);
 
+  // ── Associação de etiqueta (quando found:false e não é wrongLocation) ────────
+  const [labelAssocOpen, setLabelAssocOpen] = useState(false);
+  const [pendingLabelCode, setPendingLabelCode] = useState<string>("");
+  const [labelProductSearch, setLabelProductSearch] = useState<string>("");
+  const [labelSelectedProduct, setLabelSelectedProduct] = useState<{ id: number; sku: string | null; description: string | null } | null>(null);
+  const [labelBatch, setLabelBatch] = useState<string>("");
+  const [labelExpiryDate, setLabelExpiryDate] = useState<string>("");
+  const [labelUnitsPerBox, setLabelUnitsPerBox] = useState<number>(1);
+
   // ── Refs ───────────────────────────────────────────────────────────────────
   const addressRef = useRef<HTMLInputElement>(null);
   const volumeRef = useRef<HTMLInputElement>(null);
@@ -124,6 +135,14 @@ export function CollectorInventory() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const scanVolumeMutation = trpc.inventoryMgmt.scanVolume.useMutation();
+  const associateLabelMutation = trpc.inventoryMgmt.associateLabelForInventory.useMutation();
+
+  // Busca de produtos para associação de etiqueta (debounced)
+  const { data: productSearchResults, isLoading: searchingProducts } =
+    trpc.inventoryMgmt.searchProductsForLabel.useQuery(
+      { query: labelProductSearch },
+      { enabled: labelProductSearch.length >= 2 }
+    );
 
   const markEmptyMutation = trpc.inventoryMgmt.markLocationEmpty.useMutation({
     onSuccess: (data) => {
@@ -290,16 +309,22 @@ export function CollectorInventory() {
       if (!result.found) {
         if (result.wrongLocation) {
           setVolumeError(`⚠️ Produto ${result.product?.productSku ?? ""} pertence a outro endereço`);
+          setTimeout(() => volumeRef.current?.focus(), 50);
         } else {
-          setVolumeError("❌ Código de barras não reconhecido");
+          // Etiqueta sem labelAssociation — abrir modal para associar
+          setPendingLabelCode(code);
+          setLabelProductSearch("");
+          setLabelSelectedProduct(null);
+          setLabelBatch("");
+          setLabelExpiryDate("");
+          setLabelUnitsPerBox(1);
+          setLabelAssocOpen(true);
         }
-        setTimeout(() => volumeRef.current?.focus(), 50);
         return;
       }
 
-      const p = result.product!;
+            const p = result.product as { productId: number; productSku: string | null; productDescription: string | null; batch: string | null; expiryDate: string | null; expectedQuantity: number; labelCode: string | null; uniqueCode: string | null };
       const qty = result.unitsPerBox ?? 1; // quantidade real por etiqueta
-
       setCountedItems((prev) => {
         const idx = prev.findIndex(
           (r) => r.productId === p.productId && r.batch === p.batch
@@ -916,6 +941,151 @@ export function CollectorInventory() {
                 : <Package className="h-4 w-4 mr-2" />
               }
               Confirmar Vazio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal: Associar Etiqueta ──────────────────────────────────────────────────────── */}
+      <Dialog open={labelAssocOpen} onOpenChange={(v) => { if (!v) { setLabelAssocOpen(false); setTimeout(() => volumeRef.current?.focus(), 100); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-blue-500" />
+              Associar Etiqueta
+            </DialogTitle>
+            <DialogDescription>
+              O código <span className="font-mono font-semibold">{pendingLabelCode}</span> não possui associação de produto. Preencha os dados para criar a associação e continuar a contagem.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Busca de produto */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Produto *</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por SKU, cód. interno ou descrição..."
+                  className="pl-9"
+                  value={labelProductSearch}
+                  onChange={(e) => { setLabelProductSearch(e.target.value); setLabelSelectedProduct(null); }}
+                />
+              </div>
+              {searchingProducts && <p className="text-xs text-muted-foreground">Buscando...</p>}
+              {productSearchResults && productSearchResults.length > 0 && !labelSelectedProduct && (
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {productSearchResults.map((p) => (
+                    <button
+                      key={p.id}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent border-b last:border-b-0"
+                      onClick={() => { setLabelSelectedProduct(p); setLabelProductSearch(p.sku ?? p.description ?? String(p.id)); }}
+                    >
+                      <span className="font-mono text-xs text-muted-foreground mr-2">{p.sku ?? p.internalCode}</span>
+                      {p.description}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {labelSelectedProduct && (
+                <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-blue-500 shrink-0" />
+                  <span className="font-semibold">{labelSelectedProduct.sku}</span>
+                  <span className="text-muted-foreground truncate">{labelSelectedProduct.description}</span>
+                  <button className="ml-auto text-xs text-blue-600 hover:underline" onClick={() => { setLabelSelectedProduct(null); setLabelProductSearch(""); }}>Alterar</button>
+                </div>
+              )}
+            </div>
+
+            {/* Lote */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Lote</label>
+              <Input
+                placeholder="Número do lote (opcional)"
+                value={labelBatch}
+                onChange={(e) => setLabelBatch(e.target.value)}
+              />
+            </div>
+
+            {/* Validade */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Validade</label>
+              <Input
+                type="date"
+                value={labelExpiryDate}
+                onChange={(e) => setLabelExpiryDate(e.target.value)}
+              />
+            </div>
+
+            {/* Unidades por caixa */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Unidades por embalagem</label>
+              <Input
+                type="number"
+                min={1}
+                value={labelUnitsPerBox}
+                onChange={(e) => setLabelUnitsPerBox(Math.max(1, Number(e.target.value)))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setLabelAssocOpen(false); setTimeout(() => volumeRef.current?.focus(), 100); }}
+              disabled={associateLabelMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              disabled={!labelSelectedProduct || associateLabelMutation.isPending}
+              onClick={async () => {
+                if (!labelSelectedProduct) return;
+                try {
+                  const result = await associateLabelMutation.mutateAsync({
+                    labelCode: pendingLabelCode,
+                    productId: labelSelectedProduct.id,
+                    batch: labelBatch || undefined,
+                    expiryDate: labelExpiryDate || undefined,
+                    unitsPerBox: labelUnitsPerBox,
+                  });
+                  // Adicionar à contagem com a quantidade configurada
+                  const qty = result.unitsPerBox;
+                  setCountedItems((prev) => {
+                    const idx = prev.findIndex(
+                      (r) => r.productId === result.productId && r.batch === (result.batch ?? null)
+                    );
+                    if (idx >= 0) {
+                      return prev.map((r, i) =>
+                        i === idx ? { ...r, countedQuantity: r.countedQuantity + qty } : r
+                      );
+                    }
+                    return [
+                      ...prev,
+                      {
+                        productId: result.productId,
+                        productSku: result.productSku,
+                        productDescription: result.productDescription,
+                        batch: result.batch ?? null,
+                        expiryDate: result.expiryDate ?? null,
+                        expectedQuantity: 0,
+                        countedQuantity: qty,
+                        labelCode: pendingLabelCode,
+                      },
+                    ];
+                  });
+                  toast.success(`Etiqueta associada: ${result.productSku ?? result.productDescription ?? "Produto"} ${result.batch ? `— Lote ${result.batch}` : ""}`);
+                  setLabelAssocOpen(false);
+                  setTimeout(() => volumeRef.current?.focus(), 100);
+                } catch (err: any) {
+                  toast.error(err.message ?? "Erro ao associar etiqueta");
+                }
+              }}
+            >
+              {associateLabelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Tag className="h-4 w-4 mr-2" />}
+              Associar e Contar
             </Button>
           </DialogFooter>
         </DialogContent>

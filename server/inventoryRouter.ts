@@ -25,6 +25,7 @@ import {
   users,
   tenants,
 } from "../drizzle/schema";
+import { getUniqueCode } from "./utils/uniqueCode";
 
 // ─── Helpers de permissão ─────────────────────────────────────────────────────
 
@@ -1520,5 +1521,119 @@ export const inventoryRouter = router({
         .leftJoin(users, eq(inventoryAuditLog.performedBy, users.id))
         .where(eq(inventoryAuditLog.inventoryId, input.inventoryId))
         .orderBy(desc(inventoryAuditLog.createdAt));
+    }),
+
+  // ── Associar etiqueta durante contagem de inventário ────────────────────────
+  // Chamado quando scanVolume retorna found:false (etiqueta sem labelAssociation)
+  associateLabelForInventory: protectedProcedure
+    .input(z.object({
+      labelCode: z.string().min(1),
+      productId: z.number(),
+      batch: z.string().optional(),
+      expiryDate: z.string().optional(), // YYYY-MM-DD
+      unitsPerBox: z.number().min(1).default(1),
+      tenantId: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+      // Verificar se labelCode já existe (pode ter sido criado em paralelo)
+      const existing = await db
+        .select({ id: labelAssociations.id, uniqueCode: labelAssociations.uniqueCode })
+        .from(labelAssociations)
+        .where(eq(labelAssociations.labelCode, input.labelCode))
+        .limit(1);
+      if (existing.length > 0) {
+        // Já existe — retornar os dados existentes
+        const [product] = await db
+          .select({ sku: products.sku, description: products.description })
+          .from(products)
+          .where(eq(products.id, input.productId))
+          .limit(1);
+        return {
+          labelAssociationId: existing[0].id,
+          uniqueCode: existing[0].uniqueCode,
+          productId: input.productId,
+          productSku: product?.sku ?? null,
+          productDescription: product?.description ?? null,
+          batch: input.batch ?? null,
+          expiryDate: input.expiryDate ?? null,
+          unitsPerBox: input.unitsPerBox,
+          alreadyExisted: true,
+        };
+      }
+
+      // Buscar produto para gerar uniqueCode
+      const [product] = await db
+        .select({ id: products.id, sku: products.sku, description: products.description })
+        .from(products)
+        .where(eq(products.id, input.productId))
+        .limit(1);
+      if (!product) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Produto não encontrado" });
+      }
+
+      const effectiveTenantId = (input.tenantId ?? ctx.user.tenantId) as number;
+      const uniqueCode = getUniqueCode(product.sku ?? String(product.id), input.batch ?? null);
+
+      const insertResult = await db.insert(labelAssociations).values({
+        tenantId: effectiveTenantId,
+        labelCode: input.labelCode,
+        uniqueCode,
+        productId: product.id,
+        batch: input.batch ?? null,
+        expiryDate: (input.expiryDate ?? null) as string | null,
+        unitsPerBox: input.unitsPerBox,
+        associatedBy: ctx.user.id,
+        status: "AVAILABLE" as const,
+      });
+
+      return {
+        labelAssociationId: (insertResult as any).insertId,
+        uniqueCode,
+        productId: product.id,
+        productSku: product.sku ?? null,
+        productDescription: product.description ?? null,
+        batch: input.batch ?? null,
+        expiryDate: input.expiryDate ?? null,
+        unitsPerBox: input.unitsPerBox,
+        alreadyExisted: false,
+      };
+    }),
+
+  // ── Buscar produtos para associação de etiqueta ─────────────────────────────
+  searchProductsForLabel: protectedProcedure
+    .input(z.object({
+      query: z.string().min(1),
+      tenantId: z.number().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+
+      const effectiveTenantId = (input.tenantId ?? ctx.user.tenantId) as number;
+      const q = `%${input.query}%`;
+
+      return db
+        .select({
+          id: products.id,
+          sku: products.sku,
+          description: products.description,
+          internalCode: products.internalCode,
+        })
+        .from(products)
+        .where(
+          and(
+            effectiveTenantId ? eq(products.tenantId, effectiveTenantId) : undefined,
+            or(
+              sql`COALESCE(${products.sku}, '') LIKE ${q}`,
+              sql`COALESCE(${products.description}, '') LIKE ${q}`,
+              sql`COALESCE(${products.internalCode}, '') LIKE ${q}`
+            )
+          )
+        )
+        .orderBy(asc(products.sku))
+        .limit(20);
     }),
 });
