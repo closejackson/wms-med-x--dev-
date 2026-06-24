@@ -1568,15 +1568,56 @@ export const inventoryRouter = router({
         .where(eq(labelAssociations.labelCode, input.labelCode))
         .limit(1);
       if (existing.length > 0) {
-        // Já existe — retornar os dados existentes
+        // Já existe — garantir que a linha de inventory também existe para este endereço
         const [product] = await db
           .select({ sku: products.sku, description: products.description })
           .from(products)
           .where(eq(products.id, input.productId))
           .limit(1);
+        const existingUniqueCode = existing[0].uniqueCode;
+        if (input.locationId) {
+          const isGlobalAdminEarly = ctx.user.role === "admin" && ctx.user.tenantId === 1;
+          let earlyTenantId: number | null = isGlobalAdminEarly ? (input.tenantId ?? null) : ctx.user.tenantId;
+          if (isGlobalAdminEarly && !earlyTenantId && input.inventoryId) {
+            const [inv] = await db
+              .select({ tenantId: inventories.tenantId })
+              .from(inventories)
+              .where(eq(inventories.id, input.inventoryId))
+              .limit(1);
+            earlyTenantId = inv?.tenantId ?? null;
+          }
+          const [existingInvRow] = await db
+            .select({ id: inventory.id })
+            .from(inventory)
+            .where(and(
+              eq(inventory.locationId, input.locationId),
+              eq(inventory.productId, input.productId),
+              input.batch ? eq(inventory.batch, input.batch) : isNull(inventory.batch),
+              eq(inventory.status, "available"),
+            ))
+            .limit(1);
+          if (existingInvRow) {
+            await db.update(inventory)
+              .set({ labelCode: input.labelCode, uniqueCode: existingUniqueCode })
+              .where(eq(inventory.id, existingInvRow.id));
+          } else if (earlyTenantId) {
+            await db.insert(inventory).values({
+              tenantId: earlyTenantId,
+              productId: input.productId,
+              locationId: input.locationId,
+              batch: input.batch ?? null,
+              expiryDate: (input.expiryDate ?? null) as string | null,
+              uniqueCode: existingUniqueCode,
+              labelCode: input.labelCode,
+              quantity: 0,
+              reservedQuantity: 0,
+              status: "available",
+            });
+          }
+        }
         return {
           labelAssociationId: existing[0].id,
-          uniqueCode: existing[0].uniqueCode,
+          uniqueCode: existingUniqueCode,
           productId: input.productId,
           productSku: product?.sku ?? null,
           productDescription: product?.description ?? null,
