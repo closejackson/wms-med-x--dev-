@@ -1530,6 +1530,7 @@ export const inventoryRouter = router({
       labelCode: z.string().min(1),
       productId: z.number(),
       inventoryId: z.number().optional(), // usado para resolver tenantId quando Global Admin
+      locationId: z.number().optional(),  // endereço atual da contagem — para criar linha no inventory
       batch: z.string().optional(),
       expiryDate: z.string().optional(), // YYYY-MM-DD
       unitsPerBox: z.number().min(1).default(1),
@@ -1611,7 +1612,7 @@ export const inventoryRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Não foi possível determinar o cliente para esta etiqueta. Informe o inventário ou o cliente." });
       }
       const uniqueCode = getUniqueCode(product.sku ?? String(product.id), input.batch ?? null);
-      const insertResult = await db.insert(labelAssociations).values({
+            const insertResult = await db.insert(labelAssociations).values({
         tenantId: effectiveTenantId,
         labelCode: input.labelCode,
         uniqueCode,
@@ -1622,7 +1623,40 @@ export const inventoryRouter = router({
         associatedBy: ctx.user.id,
         status: "AVAILABLE" as const,
       });
-
+      // Opção B: criar/atualizar linha na tabela inventory para que scanVolume encontre a etiqueta
+      if (input.locationId) {
+        // Verificar se já existe linha para este produto/lote/endereço
+        const [existingInv] = await db
+          .select({ id: inventory.id })
+          .from(inventory)
+          .where(and(
+            eq(inventory.locationId, input.locationId),
+            eq(inventory.productId, product.id),
+            input.batch ? eq(inventory.batch, input.batch) : isNull(inventory.batch),
+            eq(inventory.status, "available"),
+          ))
+          .limit(1);
+        if (existingInv) {
+          // Atualizar labelCode na linha existente (tenantId já correto, updatedAt automático)
+          await db.update(inventory)
+            .set({ labelCode: input.labelCode, uniqueCode })
+            .where(eq(inventory.id, existingInv.id));
+        } else {
+          // Criar nova linha com quantity=0 (será incrementada pelo scanVolume após o bipe)
+          await db.insert(inventory).values({
+            tenantId: effectiveTenantId,
+            productId: product.id,
+            locationId: input.locationId,
+            batch: input.batch ?? null,
+            expiryDate: (input.expiryDate ?? null) as string | null,
+            uniqueCode,
+            labelCode: input.labelCode,
+            quantity: 0,
+            reservedQuantity: 0,
+            status: "available",
+          });
+        }
+      }
       return {
         labelAssociationId: (insertResult as any).insertId,
         uniqueCode,

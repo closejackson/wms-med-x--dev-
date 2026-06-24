@@ -1041,6 +1041,7 @@ export function CollectorInventory() {
                     labelCode: pendingLabelCode,
                     productId: labelInferredProduct.id,
                     inventoryId: selectedInventoryId ?? undefined,
+                    locationId: locationId ?? undefined, // endereço atual da contagem
                     batch: labelBatch || undefined,
                     expiryDate: labelExpiryDate || undefined,
                     unitsPerBox: labelUnitsPerBox,
