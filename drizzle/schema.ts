@@ -1668,6 +1668,10 @@ export const inventories = mysqlTable("inventories", {
   countedLocations: int("countedLocations").default(0).notNull(),
   divergentLocations: int("divergentLocations").default(0).notNull(),
   accuracy: varchar("accuracy", { length: 10 }), // Ex: "98.50"
+  // Etapas do inventário geral (phase1=com estoque, phase2=vazios, phase3=todos)
+  currentPhase: mysqlEnum("currentPhase", ["phase1", "phase2", "phase3"]).default("phase1").notNull(),
+  phase1HasDivergence: boolean("phase1HasDivergence").default(false).notNull(),
+  phase2HasDivergence: boolean("phase2HasDivergence").default(false).notNull(),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1685,6 +1689,7 @@ export const inventoryLocations = mysqlTable("inventoryLocations", {
   countAttempts: int("countAttempts").default(0).notNull(), // Número de contagens realizadas
   isBlocked: boolean("isBlocked").default(false).notNull(), // Bloqueado para picking durante inventário
   blockedAt: timestamp("blockedAt"),
+  inventoryPhase: mysqlEnum("inventoryPhase", ["phase1", "phase2", "phase3"]).default("phase1").notNull(),
   countedBy: int("countedBy"),
   countedAt: timestamp("countedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1750,7 +1755,7 @@ export const inventoryAuditLog = mysqlTable("inventoryAuditLog", {
   id: int("id").autoincrement().primaryKey(),
   inventoryId: int("inventoryId").notNull(),
   inventoryLocationId: int("inventoryLocationId"),
-  action: mysqlEnum("action", ["created", "started", "location_counted", "divergence_detected", "recount_requested", "divergence_resolved", "location_blocked", "completed", "cancelled"]).notNull(),
+  action: mysqlEnum("action", ["created", "started", "location_counted", "divergence_detected", "recount_requested", "divergence_resolved", "location_blocked", "completed", "cancelled", "phase_advanced"]).notNull(),
   locationId: int("locationId"),
   locationCode: varchar("locationCode", { length: 50 }),
   productId: int("productId"),

@@ -136,6 +136,18 @@ export function CollectorInventory() {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const scanVolumeMutation = trpc.inventoryMgmt.scanVolume.useMutation();
   const associateLabelMutation = trpc.inventoryMgmt.associateLabelForInventory.useMutation();
+  const advancePhaseMutation = trpc.inventoryMgmt.advancePhase.useMutation({
+    onSuccess: (data) => {
+      const phaseNames: Record<string, string> = { phase1: "1ª Etapa", phase2: "2ª Etapa", phase3: "3ª Etapa" };
+      if (data.advanced) {
+        toast.success(`Avançado para ${phaseNames[data.currentPhase] ?? data.currentPhase}`);
+      } else {
+        toast.info(data.message ?? "Inventário concluído");
+      }
+      refetchNext();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   // (busca externa de produtos removida — produto inferido do saldo do endereço)
 
@@ -554,13 +566,23 @@ export function CollectorInventory() {
                 <CardContent className="py-3">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="font-medium text-teal-800">{selectedInventoryNumber}</span>
-                    <span className="text-teal-700">{progress}%</span>
+                    <div className="flex items-center gap-2">
+                      {nextLocData?.inventoryType === "general" && (
+                        <Badge variant="outline" className="text-xs border-teal-400 text-teal-700">
+                          {nextLocData.currentPhase === "phase1" ? "1ª Etapa" : nextLocData.currentPhase === "phase2" ? "2ª Etapa" : "3ª Etapa"}
+                        </Badge>
+                      )}
+                      <span className="text-teal-700">{progress}%</span>
+                    </div>
                   </div>
                   <div className="w-full bg-teal-100 rounded-full h-2">
                     <div className="bg-teal-500 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
                   </div>
                   <p className="text-xs text-teal-600 mt-1">
                     {selectedInventory.countedLocations ?? 0} / {selectedInventory.totalLocations} endereços contados
+                    {nextLocData?.inventoryType === "general" && nextLocData.pendingInPhase > 0 && (
+                      <span className="ml-2 text-amber-600">({nextLocData.pendingInPhase} pendentes nesta etapa)</span>
+                    )}
                   </p>
                 </CardContent>
               </Card>
@@ -583,11 +605,49 @@ export function CollectorInventory() {
 
                 {!loadingNext && !nextLocData?.nextLocation && (
                   <div className="text-center py-4">
-                    <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                    <p className="font-semibold text-green-700">Todos os endereços contados!</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {nextLocData?.countedLocations} / {nextLocData?.totalLocations} endereços
-                    </p>
+                    {/* Fase concluída — verificar se há próxima fase */}
+                    {nextLocData?.inventoryType === "general" && nextLocData?.currentPhase !== "phase3" ? (
+                      <>
+                        <CheckCircle2 className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+                        <p className="font-semibold text-amber-700">
+                          {nextLocData.currentPhase === "phase1" ? "1ª Etapa concluída!" : "2ª Etapa concluída!"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 mb-3">
+                          {nextLocData.currentPhase === "phase1"
+                            ? nextLocData.phase1HasDivergence
+                              ? "Divergências encontradas — 2ª etapa: conferir endereços vazios"
+                              : "Sem divergências — 3ª etapa: conferir todos os endereços"
+                            : nextLocData.phase2HasDivergence
+                              ? "Divergências encontradas — inventário encerrado"
+                              : "Sem divergências — 3ª etapa: conferir todos os endereços"
+                          }
+                        </p>
+                        {!(nextLocData.currentPhase === "phase2" && nextLocData.phase2HasDivergence) && (
+                          <Button
+                            className="bg-teal-600 hover:bg-teal-700 w-full"
+                            onClick={() => advancePhaseMutation.mutate({ inventoryId: selectedInventoryId! })}
+                            disabled={advancePhaseMutation.isPending}
+                          >
+                            {advancePhaseMutation.isPending
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              : <ChevronRight className="h-4 w-4 mr-2" />
+                            }
+                            Avançar para próxima etapa
+                          </Button>
+                        )}
+                        {nextLocData.currentPhase === "phase2" && nextLocData.phase2HasDivergence && (
+                          <p className="text-sm text-red-600 font-medium">Inventário encerrado com divergências.</p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
+                        <p className="font-semibold text-green-700">Todos os endereços contados!</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {nextLocData?.countedLocations} / {nextLocData?.totalLocations} endereços
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
 

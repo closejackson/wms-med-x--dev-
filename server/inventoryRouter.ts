@@ -148,6 +148,22 @@ export const inventoryRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Nenhum endereço elegível encontrado para este inventário" });
       }
 
+            // Para inventário geral: classificar endereços por fase (phase1=com estoque, phase2=vazios)
+      let locationPhaseMap: Map<number, "phase1" | "phase2" | "phase3"> = new Map();
+      if (input.inventoryType === "general") {
+        // Buscar quais endereços têm saldo > 0
+        const locIds = eligibleLocations.map((l) => l.id);
+        if (locIds.length > 0) {
+          const stockRows = await db.execute(
+            sql`SELECT DISTINCT locationId FROM inventory WHERE locationId IN (${sql.join(locIds.map((id) => sql`${id}`), sql`, `)}) AND quantity > 0 AND status = 'available'`
+          );
+          const stockRowArr = Array.isArray((stockRows as any)[0]) ? (stockRows as any)[0] : (stockRows as any);
+          const locationsWithStock = new Set(stockRowArr.map((r: any) => Number(r.locationId)));
+          for (const loc of eligibleLocations) {
+            locationPhaseMap.set(loc.id, locationsWithStock.has(loc.id) ? "phase1" : "phase2");
+          }
+        }
+      }
       return await db.transaction(async (tx: any) => {
         const inventoryNumber = await generateInventoryNumber(tx);
         // Criar inventário
@@ -162,10 +178,12 @@ export const inventoryRouter = router({
           totalLocations: eligibleLocations.length,
           countedLocations: 0,
           divergentLocations: 0,
+          currentPhase: "phase1",
+          phase1HasDivergence: false,
+          phase2HasDivergence: false,
           createdBy: ctx.user.id,
         });
         const inventoryId = (inserted as any).insertId;
-
         // Criar inventoryLocations para cada endereço
         const locRows = eligibleLocations.map((loc) => ({
           inventoryId,
@@ -174,6 +192,7 @@ export const inventoryRouter = router({
           status: "pending" as const,
           countAttempts: 0,
           isBlocked: false,
+          inventoryPhase: locationPhaseMap.get(loc.id) ?? "phase1" as "phase1" | "phase2" | "phase3",
         }));
         await tx.insert(inventoryLocations).values(locRows);
 
@@ -501,17 +520,21 @@ export const inventoryRouter = router({
           })
           .where(eq(inventoryLocations.id, input.inventoryLocationId));
 
-        // Atualizar contadores do inventário
+                // Atualizar contadores do inventário (e marcar divergência por fase)
+        const phaseUpdateFields: Record<string, any> = {
+          countedLocations: sql`countedLocations + 1`,
+          divergentLocations: hasDivergence
+            ? sql`divergentLocations + 1`
+            : inventories.divergentLocations,
+        };
+        if (hasDivergence) {
+          if (invLoc.inventoryPhase === "phase1") phaseUpdateFields.phase1HasDivergence = true;
+          if (invLoc.inventoryPhase === "phase2") phaseUpdateFields.phase2HasDivergence = true;
+        }
         await tx
           .update(inventories)
-          .set({
-            countedLocations: sql`countedLocations + 1`,
-            divergentLocations: hasDivergence
-              ? sql`divergentLocations + 1`
-              : inventories.divergentLocations,
-          })
+          .set(phaseUpdateFields)
           .where(eq(inventories.id, input.inventoryId));
-
         // Log
         await tx.insert(inventoryAuditLog).values({
           inventoryId: input.inventoryId,
@@ -520,7 +543,6 @@ export const inventoryRouter = router({
           locationId: input.locationId,
           performedBy: ctx.user.id,
         });
-
         return { attemptNumber, hasDivergence, newStatus };
       });
     }),
@@ -1016,7 +1038,15 @@ export const inventoryRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
       // Inventário deve estar pending ou in_progress
       const [inv] = await db
-        .select({ status: inventories.status, totalLocations: inventories.totalLocations, countedLocations: inventories.countedLocations })
+        .select({
+          status: inventories.status,
+          totalLocations: inventories.totalLocations,
+          countedLocations: inventories.countedLocations,
+          inventoryType: inventories.inventoryType,
+          currentPhase: inventories.currentPhase,
+          phase1HasDivergence: inventories.phase1HasDivergence,
+          phase2HasDivergence: inventories.phase2HasDivergence,
+        })
         .from(inventories)
         .where(eq(inventories.id, input.inventoryId))
         .limit(1);
@@ -1024,21 +1054,132 @@ export const inventoryRouter = router({
       if (inv.status === "cancelled" || inv.status === "completed") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Inventário encerrado" });
       }
-      // Próximo endereço pending (ordenado por código)
+      // Para inventário geral: filtrar por fase atual
+      const phaseFilter = inv.inventoryType === "general"
+        ? eq(inventoryLocations.inventoryPhase, inv.currentPhase)
+        : undefined;
+      // Próximo endereço pending da fase atual (ordenado por código)
       const [next] = await db
         .select()
         .from(inventoryLocations)
         .where(and(
           eq(inventoryLocations.inventoryId, input.inventoryId),
           eq(inventoryLocations.status, "pending"),
+          phaseFilter,
         ))
         .orderBy(asc(inventoryLocations.locationCode))
         .limit(1);
+      // Contar pendentes da fase atual
+      const [phaseCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(inventoryLocations)
+        .where(and(
+          eq(inventoryLocations.inventoryId, input.inventoryId),
+          eq(inventoryLocations.status, "pending"),
+          phaseFilter,
+        ));
       return {
         nextLocation: next ?? null,
         totalLocations: inv.totalLocations,
         countedLocations: inv.countedLocations,
+        currentPhase: inv.currentPhase,
+        phase1HasDivergence: inv.phase1HasDivergence,
+        phase2HasDivergence: inv.phase2HasDivergence,
+                pendingInPhase: phaseCount?.count ?? 0,
+        inventoryType: inv.inventoryType,
       };
+    }),
+
+  // ── Avançar fase do inventário geral ──────────────────────────────────────────────────────────────────────
+  advancePhase: protectedProcedure
+    .input(z.object({ inventoryId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
+      const [inv] = await db
+        .select({
+          status: inventories.status,
+          inventoryType: inventories.inventoryType,
+          currentPhase: inventories.currentPhase,
+          phase1HasDivergence: inventories.phase1HasDivergence,
+          phase2HasDivergence: inventories.phase2HasDivergence,
+        })
+        .from(inventories)
+        .where(eq(inventories.id, input.inventoryId))
+        .limit(1);
+      if (!inv) throw new TRPCError({ code: "NOT_FOUND", message: "Inventário não encontrado" });
+      if (inv.inventoryType !== "general") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Avanço de fase só se aplica a inventários gerais" });
+      }
+      // Verificar se ainda há endereços pendentes na fase atual
+      const [pendingCheck] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(inventoryLocations)
+        .where(and(
+          eq(inventoryLocations.inventoryId, input.inventoryId),
+          eq(inventoryLocations.status, "pending"),
+          eq(inventoryLocations.inventoryPhase, inv.currentPhase),
+        ));
+      if ((pendingCheck?.count ?? 0) > 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Ainda há endereços pendentes na fase atual" });
+      }
+      // Determinar próxima fase com base nas regras de negócio
+      let nextPhase: "phase1" | "phase2" | "phase3" | null = null;
+      if (inv.currentPhase === "phase1") {
+        // Fase 2 só ocorre se houver divergência na fase 1
+        if (inv.phase1HasDivergence) {
+          nextPhase = "phase2";
+        } else {
+          // Sem divergência na fase 1 → pular direto para fase 3
+          nextPhase = "phase3";
+        }
+      } else if (inv.currentPhase === "phase2") {
+        // Fase 3 só ocorre se não houver divergência na fase 2
+        if (!inv.phase2HasDivergence) {
+          nextPhase = "phase3";
+        } else {
+          // Com divergência na fase 2 → inventário encerrado (não vai para fase 3)
+          nextPhase = null;
+        }
+      }
+      if (nextPhase === null) {
+        // Inventário concluído (não há mais fases)
+        return { advanced: false, currentPhase: inv.currentPhase, message: "Inventário concluído. Não há mais fases a percorrer." };
+      }
+      // Verificar se a próxima fase tem endereços
+      const [nextPhaseCount] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(inventoryLocations)
+        .where(and(
+          eq(inventoryLocations.inventoryId, input.inventoryId),
+          eq(inventoryLocations.inventoryPhase, nextPhase),
+        ));
+      if ((nextPhaseCount?.count ?? 0) === 0 && nextPhase !== "phase3") {
+        // Próxima fase não tem endereços, pular
+        return { advanced: false, currentPhase: inv.currentPhase, message: `Fase ${nextPhase} não possui endereços. Inventário concluído.` };
+      }
+      // Se fase 3: marcar todos os endereços ainda pending de qualquer fase como phase3
+      if (nextPhase === "phase3") {
+        await db
+          .update(inventoryLocations)
+          .set({ inventoryPhase: "phase3" })
+          .where(and(
+            eq(inventoryLocations.inventoryId, input.inventoryId),
+            eq(inventoryLocations.status, "pending"),
+          ));
+      }
+      // Avançar fase no inventário
+      await db
+        .update(inventories)
+        .set({ currentPhase: nextPhase })
+        .where(eq(inventories.id, input.inventoryId));
+      await db.insert(inventoryAuditLog).values({
+        inventoryId: input.inventoryId,
+        action: "phase_advanced",
+        performedBy: ctx.user.id,
+        notes: `Fase avançada de ${inv.currentPhase} para ${nextPhase}`,
+      });
+      return { advanced: true, currentPhase: nextPhase, previousPhase: inv.currentPhase };
     }),
 
   // ── Coletor: bipa volume (incrementa contador em memória via estado local) ───

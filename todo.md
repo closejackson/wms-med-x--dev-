@@ -813,3 +813,12 @@
 
 - [x] BUG CORRIGIDO: Inventário incluía endereços não-STORAGE (REC-01-C, EXP, SOB, FAL etc.). Filtro corrigido para zoneCode IN ('STORAGE', 'ARM') tanto na query geral quanto na query cíclica (SQL raw)
 - [x] BUG CORRIGIDO: Inventário gerado não aparecia no coletor — listActiveForCollector filtrava apenas status='in_progress'. Corrigido para incluir ['pending', 'in_progress'] para que inventários recém-criados (pending) já apareçam no coletor
+
+## Etapas do Inventário Geral (3 fases)
+- [ ] Adicionar campo `phase` (enum: phase1|phase2|phase3) e `phase1HasDivergence` (boolean) na tabela `inventories`
+- [ ] Migration SQL para os novos campos
+- [ ] Backend: `getNextLocation` filtra endereços por etapa ativa (phase1=qty>0, phase2=qty=0, phase3=todos)
+- [ ] Backend: `finishPhase` procedure para avançar entre etapas com base em divergências
+- [ ] Backend: `getInventoryPhaseStatus` retorna etapa atual e contagem de divergências por etapa
+- [ ] Frontend: exibir etapa atual no cabeçalho do inventário
+- [ ] Frontend: ao finalizar todos os endereços da etapa, mostrar resumo e botão para avançar etapa

@@ -1,0 +1,1 @@
+ALTER TABLE `inventoryAuditLog` MODIFY COLUMN `action` enum('created','started','location_counted','divergence_detected','recount_requested','divergence_resolved','location_blocked','completed','cancelled','phase_advanced') NOT NULL;
