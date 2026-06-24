@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { pickingOrders, pickingOrderItems, pickingWaves, pickingWaveItems, products, inventory, warehouseLocations, warehouseZones, tenants, pickingAllocations } from "../drizzle/schema";
+import { pickingOrders, pickingOrderItems, pickingWaves, pickingWaveItems, products, inventory, warehouseLocations, warehouseZones, tenants, pickingAllocations, labelAssociations } from "../drizzle/schema";
 import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
 import { getUniqueCode } from "./utils/uniqueCode";
 
@@ -243,6 +243,7 @@ export async function createWave(params: CreateWaveParams) {
   const pickingRule = tenant.pickingRule as "FIFO" | "FEFO" | "Direcionado";
 
   // 2.5. Validar que todos os produtos dos pedidos têm unitsPerBox cadastrado
+  // Prioridade: products.unitsPerBox > labelAssociations.unitsPerBox (mais recente)
   const orderItemsForValidation = await db
     .select({
       productId: pickingOrderItems.productId,
@@ -259,15 +260,42 @@ export async function createWave(params: CreateWaveParams) {
   );
 
   if (productsWithoutUPB.length > 0) {
-    const uniqueProducts = Array.from(
-      new Map(productsWithoutUPB.map((p) => [p.productId, p])).values()
+    // Tentar resolver unitsPerBox via labelAssociations para produtos sem cadastro
+    const missingIds = [...new Set(productsWithoutUPB.map((p) => p.productId).filter(Boolean) as number[])];
+    const labelUPBRows = await db
+      .select({ productId: labelAssociations.productId, unitsPerBox: labelAssociations.unitsPerBox })
+      .from(labelAssociations)
+      .where(and(
+        inArray(labelAssociations.productId, missingIds),
+        sql`${labelAssociations.unitsPerBox} > 0`,
+      ))
+      .orderBy(desc(labelAssociations.associatedAt));
+    // Mapear productId -> primeiro unitsPerBox encontrado
+    const labelUPBMap = new Map<number, number>();
+    for (const row of labelUPBRows) {
+      if (row.productId && row.unitsPerBox && !labelUPBMap.has(row.productId)) {
+        labelUPBMap.set(row.productId, row.unitsPerBox);
+      }
+    }
+    // Atualizar products.unitsPerBox para os que foram encontrados na labelAssociation
+    for (const [productId, upb] of labelUPBMap.entries()) {
+      await db.update(products).set({ unitsPerBox: upb }).where(eq(products.id, productId));
+    }
+    // Verificar se ainda há produtos sem UPB após o fallback
+    const stillMissing = productsWithoutUPB.filter(
+      (item) => !item.productId || !labelUPBMap.has(item.productId)
     );
-    const productList = uniqueProducts
-      .map((p) => `${p.productSku ?? `ID:${p.productId}`} — ${p.productDescription ?? "Produto sem descrição"}`)
-      .join("; ");
-    throw new Error(
-      `Não é possível iniciar o picking: os seguintes produtos não possuem "Unidades por Caixa" cadastrado: ${productList}. Acesse o cadastro de produtos e preencha este campo antes de continuar.`
-    );
+    if (stillMissing.length > 0) {
+      const uniqueProducts = Array.from(
+        new Map(stillMissing.map((p) => [p.productId, p])).values()
+      );
+      const productList = uniqueProducts
+        .map((p) => `${p.productSku ?? `ID:${p.productId}`} — ${p.productDescription ?? "Produto sem descrição"}`)
+        .join("; ");
+      throw new Error(
+        `Não é possível iniciar o picking: os seguintes produtos não possuem "Unidades por Caixa" cadastrado: ${productList}. Acesse o cadastro de produtos e preencha este campo antes de continuar.`
+      );
+    }
   }
 
   // 3. Buscar alocações dos pedidos (já criadas durante criação do pedido)
