@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -963,6 +964,7 @@ export function CollectorInventory() {
             {/* Busca de produto */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Produto *</label>
+              {/* Campo de busca */}
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -973,19 +975,27 @@ export function CollectorInventory() {
                 />
               </div>
               {searchingProducts && <p className="text-xs text-muted-foreground">Buscando...</p>}
-              {productSearchResults && productSearchResults.length > 0 && !labelSelectedProduct && (
-                <div className="border rounded-md max-h-40 overflow-y-auto">
-                  {productSearchResults.map((p) => (
-                    <button
-                      key={p.id}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent border-b last:border-b-0"
-                      onClick={() => { setLabelSelectedProduct(p); setLabelProductSearch(p.sku ?? p.description ?? String(p.id)); }}
-                    >
-                      <span className="font-mono text-xs text-muted-foreground mr-2">{p.sku ?? p.internalCode}</span>
-                      {p.description}
-                    </button>
-                  ))}
-                </div>
+              {/* Select dropdown com resultados */}
+              {productSearchResults && productSearchResults.length > 0 && (
+                <Select
+                  value={labelSelectedProduct ? String(labelSelectedProduct.id) : ""}
+                  onValueChange={(val) => {
+                    const found = productSearchResults.find((p) => String(p.id) === val);
+                    if (found) setLabelSelectedProduct(found);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o produto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productSearchResults.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        <span className="font-mono text-xs text-muted-foreground mr-2">{p.sku ?? p.internalCode}</span>
+                        {p.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
               {labelSelectedProduct && (
                 <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm">
