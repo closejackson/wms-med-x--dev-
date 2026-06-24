@@ -4,8 +4,8 @@ import { z } from "zod";
 import { getDb } from "./db";
 import { getUniqueCode } from "./utils/uniqueCode";
 import { toMySQLDate } from "../shared/utils";
-import { pickingWaves, pickingWaveItems, pickingOrders, pickingOrderItems, inventory, products, labelAssociations, pickingAllocations, warehouseLocations, labelReadings } from "../drizzle/schema";
-import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { pickingWaves, pickingWaveItems, pickingOrders, pickingOrderItems, inventory, products, labelAssociations, pickingAllocations, warehouseLocations, labelReadings, inventoryMovements } from "../drizzle/schema";
+import { eq, and, inArray, desc, sql, isNull } from "drizzle-orm";
 import { createWave, getWaveById } from "./waveLogic";
 import { generateWaveDocument } from "./waveDocument";
 import { TRPCError } from "@trpc/server";
@@ -693,6 +693,113 @@ export const waveRouter = router({
           pickedAt: new Date(),
         })
         .where(eq(pickingOrders.waveId, input.waveId));
+
+      // 5. Para pedidos de sobra de inventário (inventory_surplus):
+      //    mover os itens separados do endereço de armazenagem para o endereço SOB
+      const surplusOrders = await db
+        .select({ id: pickingOrders.id, tenantId: pickingOrders.tenantId })
+        .from(pickingOrders)
+        .where(and(
+          eq(pickingOrders.waveId, input.waveId),
+          eq(pickingOrders.orderType, "inventory_surplus"),
+        ));
+
+      if (surplusOrders.length > 0) {
+        const resolvedTenantId = surplusOrders[0].tenantId;
+
+        // Buscar endereço SOB do tenant
+        const [sobLoc] = await db
+          .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+          .from(warehouseLocations)
+          .where(and(
+            eq(warehouseLocations.zoneCode, "SOB"),
+            resolvedTenantId ? eq(warehouseLocations.tenantId, resolvedTenantId) : isNull(warehouseLocations.tenantId),
+          ))
+          .limit(1);
+
+        if (sobLoc) {
+          // Para cada item separado (picked), movimentar da armazenagem para SOB
+          const pickedItems = await db
+            .select({
+              productId: pickingWaveItems.productId,
+              productSku: pickingWaveItems.productSku,
+              batch: pickingWaveItems.batch,
+              expiryDate: pickingWaveItems.expiryDate,
+              locationId: pickingWaveItems.locationId,
+              pickedQuantity: pickingWaveItems.pickedQuantity,
+            })
+            .from(pickingWaveItems)
+            .where(and(
+              eq(pickingWaveItems.waveId, input.waveId),
+              eq(pickingWaveItems.status, "picked"),
+            ));
+
+          for (const item of pickedItems) {
+            if (!item.locationId || !item.pickedQuantity || item.pickedQuantity <= 0) continue;
+            const qty = item.pickedQuantity;
+
+            // Reduzir estoque no endereço de origem (armazenagem)
+            await db.execute(
+              sql`UPDATE inventory SET quantity = GREATEST(0, quantity - ${qty})
+                  WHERE locationId = ${item.locationId}
+                  AND productId = ${item.productId}
+                  AND (batch = ${item.batch ?? null} OR (batch IS NULL AND ${item.batch ?? null} IS NULL))
+                  AND tenantId = ${resolvedTenantId}
+                  LIMIT 1`
+            );
+
+            // Adicionar/atualizar no endereço SOB
+            const [existingSob] = await db
+              .select({ id: inventory.id, quantity: inventory.quantity })
+              .from(inventory)
+              .where(and(
+                eq(inventory.locationId, sobLoc.id),
+                eq(inventory.productId, item.productId),
+                item.batch ? eq(inventory.batch, item.batch) : isNull(inventory.batch),
+                eq(inventory.tenantId, resolvedTenantId),
+              ))
+              .limit(1);
+
+            if (existingSob) {
+              await db.execute(
+                sql`UPDATE inventory SET quantity = quantity + ${qty} WHERE id = ${existingSob.id}`
+              );
+            } else {
+              await db.insert(inventory).values({
+                tenantId: resolvedTenantId,
+                productId: item.productId,
+                locationId: sobLoc.id,
+                batch: item.batch ?? null,
+                expiryDate: item.expiryDate ?? null,
+                locationZone: "SOB",
+                quantity: qty,
+                reservedQuantity: 0,
+                status: "quarantine",
+              });
+            }
+
+            // Registrar movimento
+            await db.insert(inventoryMovements).values({
+              tenantId: resolvedTenantId,
+              productId: item.productId,
+              batch: item.batch ?? null,
+              expiryDate: item.expiryDate ?? null,
+              fromLocationId: item.locationId,
+              toLocationId: sobLoc.id,
+              quantity: qty,
+              movementType: "transfer",
+              referenceType: "picking",
+              referenceId: input.waveId,
+              performedBy: ctx.user.id,
+              notes: `Sobra inventário separada — movida para SOB (${sobLoc.code})`,
+            });
+          }
+
+          console.log(`[completeWave] Movimentados itens de sobra para SOB (${sobLoc.code}) — onda ${wave.waveNumber}`);
+        } else {
+          console.warn(`[completeWave] Endereço SOB não encontrado para tenant ${resolvedTenantId} — itens não movimentados`);
+        }
+      }
 
       return { 
         success: true, 

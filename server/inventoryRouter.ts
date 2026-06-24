@@ -1476,6 +1476,30 @@ export const inventoryRouter = router({
       const hasDivergence = input.counts.some(c => c.countedQuantity !== c.expectedQuantity);
       const newStatus = hasDivergence ? "divergent" : "counted";
 
+      // Resolver tenantId a partir do inventário (não do usuário, para suportar Global Admin)
+      const [invRow] = await db
+        .select({ tenantId: inventories.tenantId })
+        .from(inventories)
+        .where(eq(inventories.id, input.inventoryId))
+        .limit(1);
+      const resolvedTenantId = invRow?.tenantId ?? null;
+
+      // Pré-buscar endereço FAL (fora da transação para evitar deadlock)
+      // Necessário para alocação imediata de faltas
+      const shortageItems = input.counts.filter(c => c.countedQuantity < c.expectedQuantity);
+      let falLoc: { id: number; code: string } | null = null;
+      if (shortageItems.length > 0 && resolvedTenantId) {
+        const [falRow] = await db
+          .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+          .from(warehouseLocations)
+          .where(and(
+            eq(warehouseLocations.zoneCode, "FAL"),
+            eq(warehouseLocations.tenantId, resolvedTenantId),
+          ))
+          .limit(1);
+        falLoc = falRow ?? null;
+      }
+
       return await db.transaction(async (tx: any) => {
         // Registrar tentativas
         for (const count of input.counts) {
@@ -1526,6 +1550,123 @@ export const inventoryRouter = router({
             .where(eq(inventories.id, input.inventoryId));
         }
 
+        // ── Alocação imediata no FAL para faltas ─────────────────────────────────
+        // Ao detectar falta (countedQuantity < expectedQuantity), registrar divergência
+        // e mover o saldo faltante para o endereço FAL imediatamente, sem precisar
+        // chamar resolveDivergence separadamente.
+        const falResults: { falLocation: string; productSku: string }[] = [];
+        if (shortageItems.length > 0 && falLoc) {
+          for (const count of shortageItems) {
+            const absVariance = count.expectedQuantity - count.countedQuantity;
+
+            // Registrar divergência
+            const [divInserted] = await tx.insert(inventoryDivergences).values({
+              inventoryId: input.inventoryId,
+              inventoryLocationId: input.inventoryLocationId,
+              locationId: input.locationId,
+              locationCode: input.locationCode,
+              productId: count.productId,
+              productSku: count.productSku ?? null,
+              productDescription: count.productDescription ?? null,
+              batch: count.batch ?? null,
+              expiryDate: count.expiryDate ?? null,
+              tenantId: resolvedTenantId,
+              expectedQuantity: count.expectedQuantity,
+              countedQuantity: count.countedQuantity,
+              variance: -(absVariance),
+              divergenceType: "shortage",
+              resolution: "pending",
+            });
+            const divergenceId = (divInserted as any).insertId;
+
+            // Reduzir estoque no endereço de origem
+            await tx.execute(
+              sql`UPDATE inventory SET quantity = GREATEST(0, quantity - ${absVariance})
+                  WHERE locationId = ${input.locationId}
+                  AND productId = ${count.productId}
+                  AND (batch = ${count.batch ?? null} OR (batch IS NULL AND ${count.batch ?? null} IS NULL))
+                  AND status = 'available'
+                  LIMIT 1`
+            );
+
+            // Adicionar/atualizar no endereço FAL com status quarantine
+            const [existingFal] = await tx
+              .select({ id: inventory.id, quantity: inventory.quantity })
+              .from(inventory)
+              .where(and(
+                eq(inventory.locationId, falLoc!.id),
+                eq(inventory.productId, count.productId),
+                count.batch ? eq(inventory.batch, count.batch) : isNull(inventory.batch),
+                eq(inventory.status, "quarantine"),
+              ))
+              .limit(1);
+
+            if (existingFal) {
+              await tx.execute(
+                sql`UPDATE inventory SET quantity = quantity + ${absVariance} WHERE id = ${existingFal.id}`
+              );
+            } else {
+              await tx.insert(inventory).values({
+                tenantId: resolvedTenantId,
+                productId: count.productId,
+                locationId: falLoc!.id,
+                batch: count.batch ?? null,
+                expiryDate: count.expiryDate ?? null,
+                locationZone: "FAL",
+                quantity: absVariance,
+                reservedQuantity: 0,
+                status: "quarantine",
+              });
+            }
+
+            // Registrar movimento
+            await tx.insert(inventoryMovements).values({
+              tenantId: resolvedTenantId,
+              productId: count.productId,
+              batch: count.batch ?? null,
+              expiryDate: count.expiryDate ?? null,
+              fromLocationId: input.locationId,
+              toLocationId: falLoc!.id,
+              quantity: absVariance,
+              movementType: "adjustment",
+              referenceType: "inventory",
+              referenceId: input.inventoryId,
+              performedBy: ctx.user.id,
+              notes: `Falta de inventário — ${input.locationCode} → ${falLoc!.code}`,
+            });
+
+            // Marcar divergência como resolvida
+            await tx.update(inventoryDivergences)
+              .set({ resolution: "adjusted", resolvedBy: ctx.user.id, resolvedAt: new Date() })
+              .where(eq(inventoryDivergences.id, divergenceId));
+
+            falResults.push({ falLocation: falLoc!.code, productSku: count.productSku ?? String(count.productId) });
+          }
+        } else if (shortageItems.length > 0 && !falLoc) {
+          // FAL não encontrado: registrar divergências sem mover (resolveDivergence será chamado depois)
+          console.warn(`[finishLocationCount] Endereço FAL não encontrado para tenant ${resolvedTenantId} — faltas registradas sem alocação`);
+          for (const count of shortageItems) {
+            const absVariance = count.expectedQuantity - count.countedQuantity;
+            await tx.insert(inventoryDivergences).values({
+              inventoryId: input.inventoryId,
+              inventoryLocationId: input.inventoryLocationId,
+              locationId: input.locationId,
+              locationCode: input.locationCode,
+              productId: count.productId,
+              productSku: count.productSku ?? null,
+              productDescription: count.productDescription ?? null,
+              batch: count.batch ?? null,
+              expiryDate: count.expiryDate ?? null,
+              tenantId: resolvedTenantId,
+              expectedQuantity: count.expectedQuantity,
+              countedQuantity: count.countedQuantity,
+              variance: -(absVariance),
+              divergenceType: "shortage",
+              resolution: "pending",
+            });
+          }
+        }
+
         await tx.insert(inventoryAuditLog).values({
           inventoryId: input.inventoryId,
           inventoryLocationId: input.inventoryLocationId,
@@ -1533,10 +1674,16 @@ export const inventoryRouter = router({
           locationId: input.locationId,
           locationCode: input.locationCode,
           performedBy: ctx.user.id,
-          notes: `Tentativa ${input.attemptNumber}. ${hasDivergence ? "Divergência detectada" : "Sem divergência"}`,
+          notes: `Tentativa ${input.attemptNumber}. ${hasDivergence ? "Divergência detectada" : "Sem divergência"}${falResults.length > 0 ? ` — ${falResults.length} falta(s) alocada(s) no FAL` : ""}`,
         });
 
-        return { hasDivergence, newStatus, attemptNumber: input.attemptNumber, counts: input.counts };
+        return {
+          hasDivergence,
+          newStatus,
+          attemptNumber: input.attemptNumber,
+          counts: input.counts,
+          falAllocations: falResults,
+        };
       });
     }),
 
@@ -1745,11 +1892,33 @@ export const inventoryRouter = router({
       // Verificar se há saldo no endereço
       const stockRows = await db
         .select({ id: inventory.id, quantity: inventory.quantity, productId: inventory.productId,
-                  productSku: products.sku, batch: inventory.batch })
+                  productSku: products.sku, batch: inventory.batch, expiryDate: inventory.expiryDate })
         .from(inventory)
         .leftJoin(products, eq(inventory.productId, products.id))
         .where(and(eq(inventory.locationId, input.locationId), eq(inventory.status, "available")))
         .limit(10);
+
+      // Resolver tenantId a partir do inventário (não do usuário, para suportar Global Admin)
+      const [invRowEmpty] = await db
+        .select({ tenantId: inventories.tenantId })
+        .from(inventories)
+        .where(eq(inventories.id, input.inventoryId))
+        .limit(1);
+      const resolvedTenantIdEmpty = invRowEmpty?.tenantId ?? null;
+
+      // Pré-buscar endereço FAL para alocação imediata de faltas
+      let falLocEmpty: { id: number; code: string } | null = null;
+      if (stockRows.length > 0 && resolvedTenantIdEmpty) {
+        const [falRow] = await db
+          .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+          .from(warehouseLocations)
+          .where(and(
+            eq(warehouseLocations.zoneCode, "FAL"),
+            eq(warehouseLocations.tenantId, resolvedTenantIdEmpty),
+          ))
+          .limit(1);
+        falLocEmpty = falRow ?? null;
+      }
 
       return await db.transaction(async (tx: any) => {
         const hasSaldoExpected = stockRows.length > 0;
@@ -1781,6 +1950,95 @@ export const inventoryRouter = router({
             await tx.update(inventories)
               .set({ status: "in_progress", countedLocations: sql`countedLocations + 1`, divergentLocations: sql`divergentLocations + 1` })
               .where(eq(inventories.id, input.inventoryId));
+          }
+
+          // Alocação imediata no FAL para cada produto faltante
+          if (falLocEmpty) {
+            for (const row of stockRows) {
+              const qty = row.quantity;
+
+              // Registrar divergência
+              const [divInserted] = await tx.insert(inventoryDivergences).values({
+                inventoryId: input.inventoryId,
+                inventoryLocationId: input.inventoryLocationId,
+                locationId: input.locationId,
+                locationCode: input.locationCode,
+                productId: row.productId,
+                productSku: row.productSku ?? null,
+                batch: row.batch ?? null,
+                expiryDate: row.expiryDate ?? null,
+                tenantId: resolvedTenantIdEmpty,
+                expectedQuantity: qty,
+                countedQuantity: 0,
+                variance: -qty,
+                divergenceType: "shortage",
+                resolution: "pending",
+              });
+              const divergenceId = (divInserted as any).insertId;
+
+              // Reduzir estoque no endereço de origem
+              await tx.execute(
+                sql`UPDATE inventory SET quantity = GREATEST(0, quantity - ${qty})
+                    WHERE locationId = ${input.locationId}
+                    AND productId = ${row.productId}
+                    AND (batch = ${row.batch ?? null} OR (batch IS NULL AND ${row.batch ?? null} IS NULL))
+                    AND status = 'available'
+                    LIMIT 1`
+              );
+
+              // Adicionar/atualizar no endereço FAL
+              const [existingFal] = await tx
+                .select({ id: inventory.id, quantity: inventory.quantity })
+                .from(inventory)
+                .where(and(
+                  eq(inventory.locationId, falLocEmpty!.id),
+                  eq(inventory.productId, row.productId),
+                  row.batch ? eq(inventory.batch, row.batch) : isNull(inventory.batch),
+                  eq(inventory.status, "quarantine"),
+                ))
+                .limit(1);
+
+              if (existingFal) {
+                await tx.execute(
+                  sql`UPDATE inventory SET quantity = quantity + ${qty} WHERE id = ${existingFal.id}`
+                );
+              } else {
+                await tx.insert(inventory).values({
+                  tenantId: resolvedTenantIdEmpty,
+                  productId: row.productId,
+                  locationId: falLocEmpty!.id,
+                  batch: row.batch ?? null,
+                  expiryDate: row.expiryDate ?? null,
+                  locationZone: "FAL",
+                  quantity: qty,
+                  reservedQuantity: 0,
+                  status: "quarantine",
+                });
+              }
+
+              // Registrar movimento
+              await tx.insert(inventoryMovements).values({
+                tenantId: resolvedTenantIdEmpty,
+                productId: row.productId,
+                batch: row.batch ?? null,
+                expiryDate: row.expiryDate ?? null,
+                fromLocationId: input.locationId,
+                toLocationId: falLocEmpty!.id,
+                quantity: qty,
+                movementType: "adjustment",
+                referenceType: "inventory",
+                referenceId: input.inventoryId,
+                performedBy: ctx.user.id,
+                notes: `Falta de inventário (vazio) — ${input.locationCode} → ${falLocEmpty!.code}`,
+              });
+
+              // Marcar divergência como resolvida
+              await tx.update(inventoryDivergences)
+                .set({ resolution: "adjusted", resolvedBy: ctx.user.id, resolvedAt: new Date() })
+                .where(eq(inventoryDivergences.id, divergenceId));
+            }
+          } else {
+            console.warn(`[markLocationEmpty] Endereço FAL não encontrado para tenant ${resolvedTenantIdEmpty} — faltas registradas sem alocação`);
           }
         } else {
           // Endereço realmente vazio (sem saldo esperado) → contagem OK
@@ -1815,12 +2073,13 @@ export const inventoryRouter = router({
           locationCode: input.locationCode,
           performedBy: ctx.user.id,
           notes: hasSaldoExpected
-            ? `Endereço declarado vazio mas havia saldo esperado (${stockRows.length} produto(s))`
+            ? `Endereço declarado vazio mas havia saldo esperado (${stockRows.length} produto(s))${falLocEmpty ? ` — alocado no FAL (${falLocEmpty.code})` : ""}`
             : "Endereço vazio confirmado",
         });
 
         return {
           hasDivergence: hasSaldoExpected,
+          falAllocated: hasSaldoExpected && !!falLocEmpty,
           expectedItems: stockRows.map((r) => ({
             productId: r.productId,
             productSku: r.productSku ?? null,
