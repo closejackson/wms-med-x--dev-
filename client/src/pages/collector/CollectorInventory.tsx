@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Combobox, type ComboboxOption } from "../../components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -961,50 +961,31 @@ export function CollectorInventory() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Busca de produto */}
+            {/* Busca de produto com Combobox */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Produto *</label>
-              {/* Campo de busca */}
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por SKU, cód. interno ou descrição..."
-                  className="pl-9"
-                  value={labelProductSearch}
-                  onChange={(e) => { setLabelProductSearch(e.target.value); setLabelSelectedProduct(null); }}
-                />
-              </div>
-              {searchingProducts && <p className="text-xs text-muted-foreground">Buscando...</p>}
-              {/* Select dropdown com resultados */}
-              {productSearchResults && productSearchResults.length > 0 && (
-                <Select
-                  value={labelSelectedProduct ? String(labelSelectedProduct.id) : ""}
-                  onValueChange={(val) => {
-                    const found = productSearchResults.find((p) => String(p.id) === val);
-                    if (found) setLabelSelectedProduct(found);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione o produto..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productSearchResults.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        <span className="font-mono text-xs text-muted-foreground mr-2">{p.sku ?? p.internalCode}</span>
-                        {p.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {labelSelectedProduct && (
-                <div className="flex items-center gap-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-blue-500 shrink-0" />
-                  <span className="font-semibold">{labelSelectedProduct.sku}</span>
-                  <span className="text-muted-foreground truncate">{labelSelectedProduct.description}</span>
-                  <button className="ml-auto text-xs text-blue-600 hover:underline" onClick={() => { setLabelSelectedProduct(null); setLabelProductSearch(""); }}>Alterar</button>
-                </div>
-              )}
+              <Combobox
+                options={(
+                  productSearchResults ?? []
+                ).map((p): ComboboxOption => ({
+                  value: String(p.id),
+                  label: `${p.sku ?? p.internalCode ?? ""} — ${p.description ?? ""}`,
+                  searchTerms: `${p.sku ?? ""} ${p.internalCode ?? ""} ${p.description ?? ""}`,
+                }))}
+                value={labelSelectedProduct ? String(labelSelectedProduct.id) : ""}
+                onValueChange={(val) => {
+                  const found = (productSearchResults ?? []).find((p) => String(p.id) === val);
+                  if (found) {
+                    setLabelSelectedProduct(found);
+                    setLabelProductSearch(found.sku ?? found.description ?? "");
+                  }
+                }}
+                onSearchChange={(q) => { setLabelProductSearch(q); setLabelSelectedProduct(null); }}
+                externalSearch={true}
+                placeholder="Buscar por SKU, cód. interno ou descrição..."
+                searchPlaceholder="Buscar por SKU, cód. interno ou descrição..."
+                emptyText={labelProductSearch.length < 2 ? "Digite ao menos 2 caracteres para buscar" : searchingProducts ? "Buscando..." : "Nenhum produto encontrado"}
+              />
             </div>
 
             {/* Lote */}

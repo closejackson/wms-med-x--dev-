@@ -31,6 +31,8 @@ interface ComboboxProps {
   searchPlaceholder?: string
   disabled?: boolean
   className?: string
+  onSearchChange?: (search: string) => void // callback para busca externa (ex: query backend)
+  externalSearch?: boolean // quando true, desabilita filtragem interna e usa options como resultado externo
 }
 
 export function Combobox({
@@ -42,21 +44,30 @@ export function Combobox({
   searchPlaceholder = "Buscar...",
   disabled = false,
   className,
+  onSearchChange,
+  externalSearch = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
 
   const selectedOption = options.find((option) => option.value === value)
 
-  // Filtragem manual por substring exato (case-insensitive)
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    if (onSearchChange) onSearchChange(val);
+    if (!open) setOpen(true);
+  };
+
+  // Filtragem manual por substring exato (case-insensitive) — desabilitada quando externalSearch=true
   const filteredOptions = React.useMemo(() => {
+    if (externalSearch) return options; // resultados já filtrados externamente
     if (!search) return options;
     const searchLower = search.toLowerCase();
     return options.filter((option) => {
       const searchText = (option.searchTerms || option.label).toLowerCase();
       return searchText.includes(searchLower);
     });
-  }, [options, search]);
+  }, [options, search, externalSearch]);
 
   // Mapa de lowercase → valor original para lidar com normalização do cmdk
   const valueMap = React.useMemo(() => {
@@ -91,7 +102,7 @@ export function Combobox({
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}
-            onValueChange={setSearch}
+            onValueChange={handleSearchChange}
           />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
