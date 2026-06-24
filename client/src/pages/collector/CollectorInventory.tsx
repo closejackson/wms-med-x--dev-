@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
-import { Combobox, type ComboboxOption } from "../../components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -105,8 +104,8 @@ export function CollectorInventory() {
   // ── Associação de etiqueta (quando found:false e não é wrongLocation) ────────
   const [labelAssocOpen, setLabelAssocOpen] = useState(false);
   const [pendingLabelCode, setPendingLabelCode] = useState<string>("");
-  const [labelProductSearch, setLabelProductSearch] = useState<string>("");
-  const [labelSelectedProduct, setLabelSelectedProduct] = useState<{ id: number; sku: string | null; description: string | null } | null>(null);
+  // Produto inferido do saldo esperado do endereço (não precisa de busca)
+  const [labelInferredProduct, setLabelInferredProduct] = useState<{ id: number; sku: string | null; description: string | null } | null>(null);
   const [labelBatch, setLabelBatch] = useState<string>("");
   const [labelExpiryDate, setLabelExpiryDate] = useState<string>("");
   const [labelUnitsPerBox, setLabelUnitsPerBox] = useState<number>(1);
@@ -138,12 +137,7 @@ export function CollectorInventory() {
   const scanVolumeMutation = trpc.inventoryMgmt.scanVolume.useMutation();
   const associateLabelMutation = trpc.inventoryMgmt.associateLabelForInventory.useMutation();
 
-  // Busca de produtos para associação de etiqueta (debounced)
-  const { data: productSearchResults, isLoading: searchingProducts } =
-    trpc.inventoryMgmt.searchProductsForLabel.useQuery(
-      { query: labelProductSearch },
-      { enabled: labelProductSearch.length >= 2 }
-    );
+  // (busca externa de produtos removida — produto inferido do saldo do endereço)
 
   const markEmptyMutation = trpc.inventoryMgmt.markLocationEmpty.useMutation({
     onSuccess: (data) => {
@@ -312,12 +306,14 @@ export function CollectorInventory() {
           setVolumeError(`⚠️ Produto ${result.product?.productSku ?? ""} pertence a outro endereço`);
           setTimeout(() => volumeRef.current?.focus(), 50);
         } else {
-          // Etiqueta sem labelAssociation — abrir modal para associar
+          // Etiqueta sem labelAssociation — inferir produto do saldo esperado
           setPendingLabelCode(code);
-          setLabelProductSearch("");
-          setLabelSelectedProduct(null);
-          setLabelBatch("");
-          setLabelExpiryDate("");
+          // Pegar o primeiro produto do saldo esperado (ou o único disponível)
+          const expectedItems = countedItems.filter((r) => r.expectedQuantity > 0);
+          const inferred = expectedItems.length === 1 ? expectedItems[0] : null;
+          setLabelInferredProduct(inferred ? { id: inferred.productId, sku: inferred.productSku, description: inferred.productDescription } : null);
+          setLabelBatch(inferred?.batch ?? "");
+          setLabelExpiryDate(inferred?.expiryDate ?? "");
           setLabelUnitsPerBox(1);
           setLabelAssocOpen(true);
         }
@@ -961,32 +957,38 @@ export function CollectorInventory() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Busca de produto com Combobox */}
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Produto *</label>
-              <Combobox
-                options={(
-                  productSearchResults ?? []
-                ).map((p): ComboboxOption => ({
-                  value: String(p.id),
-                  label: `${p.sku ?? p.internalCode ?? ""} — ${p.description ?? ""}`,
-                  searchTerms: `${p.sku ?? ""} ${p.internalCode ?? ""} ${p.description ?? ""}`,
-                }))}
-                value={labelSelectedProduct ? String(labelSelectedProduct.id) : ""}
-                onValueChange={(val) => {
-                  const found = (productSearchResults ?? []).find((p) => String(p.id) === val);
-                  if (found) {
-                    setLabelSelectedProduct(found);
-                    setLabelProductSearch(found.sku ?? found.description ?? "");
-                  }
-                }}
-                onSearchChange={(q) => { setLabelProductSearch(q); setLabelSelectedProduct(null); }}
-                externalSearch={true}
-                placeholder="Buscar por SKU, cód. interno ou descrição..."
-                searchPlaceholder="Buscar por SKU, cód. interno ou descrição..."
-                emptyText={labelProductSearch.length < 2 ? "Digite ao menos 2 caracteres para buscar" : searchingProducts ? "Buscando..." : "Nenhum produto encontrado"}
-              />
+            {/* Produto inferido do saldo esperado */}
+            <div className="rounded-md bg-muted/50 border px-3 py-2">
+              <p className="text-xs text-muted-foreground mb-0.5">Produto</p>
+              {labelInferredProduct ? (
+                <p className="text-sm font-semibold">
+                  {labelInferredProduct.sku ? `${labelInferredProduct.sku} — ` : ""}{labelInferredProduct.description ?? ""}
+                </p>
+              ) : (
+                <p className="text-sm text-amber-600 font-medium">Múltiplos produtos no endereço — selecione abaixo</p>
+              )}
             </div>
+            {/* Se houver múltiplos produtos no endereço, mostrar select simples */}
+            {!labelInferredProduct && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Produto *</label>
+                <select
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={labelInferredProduct ? String((labelInferredProduct as any).id) : ""}
+                  onChange={(e) => {
+                    const item = countedItems.find((r) => String(r.productId) === e.target.value);
+                    if (item) setLabelInferredProduct({ id: item.productId, sku: item.productSku, description: item.productDescription });
+                  }}
+                >
+                  <option value="">Selecione o produto...</option>
+                  {countedItems.filter((r) => r.expectedQuantity > 0).map((r) => (
+                    <option key={r.productId} value={String(r.productId)}>
+                      {r.productSku ? `${r.productSku} — ` : ""}{r.productDescription ?? ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Lote */}
             <div className="space-y-1">
@@ -1031,13 +1033,13 @@ export function CollectorInventory() {
             </Button>
             <Button
               className="flex-1 bg-blue-600 hover:bg-blue-700"
-              disabled={!labelSelectedProduct || associateLabelMutation.isPending}
+              disabled={!labelInferredProduct || associateLabelMutation.isPending}
               onClick={async () => {
-                if (!labelSelectedProduct) return;
+                if (!labelInferredProduct) return;
                 try {
                   const result = await associateLabelMutation.mutateAsync({
                     labelCode: pendingLabelCode,
-                    productId: labelSelectedProduct.id,
+                    productId: labelInferredProduct.id,
                     batch: labelBatch || undefined,
                     expiryDate: labelExpiryDate || undefined,
                     unitsPerBox: labelUnitsPerBox,

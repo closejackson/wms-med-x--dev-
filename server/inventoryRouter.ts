@@ -1538,6 +1538,27 @@ export const inventoryRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
 
+      // Validar data de validade (rejeitar datas inválidas como 2030-02-30)
+      if (input.expiryDate) {
+        const trimmed = input.expiryDate.trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+          const datePart = trimmed.split("T")[0].split(" ")[0];
+          const [yyyy, mm, dd] = datePart.split("-").map(Number);
+          const parsed = new Date(Date.UTC(yyyy, mm - 1, dd));
+          const isInvalid =
+            isNaN(parsed.getTime()) ||
+            parsed.getUTCFullYear() !== yyyy ||
+            parsed.getUTCMonth() + 1 !== mm ||
+            parsed.getUTCDate() !== dd;
+          if (isInvalid) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Data de validade inválida: "${input.expiryDate}". Verifique se o dia existe no mês informado (ex: 29/02 só existe em anos bissextos).`,
+            });
+          }
+        }
+      }
+
       // Verificar se labelCode já existe (pode ter sido criado em paralelo)
       const existing = await db
         .select({ id: labelAssociations.id, uniqueCode: labelAssociations.uniqueCode })
@@ -1607,16 +1628,12 @@ export const inventoryRouter = router({
   searchProductsForLabel: protectedProcedure
     .input(z.object({
       query: z.string().min(1),
-      tenantId: z.number().optional(),
     }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
-
-      const isGlobalAdmin = ctx.user.role === "admin" && ctx.user.tenantId === 1;
-      const effectiveTenantId = isGlobalAdmin ? (input.tenantId ?? null) : ctx.user.tenantId;
+      // Produtos são globais (sem tenantId) — busca sem filtro de tenant
       const q = `%${input.query}%`;
-
       return db
         .select({
           id: products.id,
@@ -1626,13 +1643,10 @@ export const inventoryRouter = router({
         })
         .from(products)
         .where(
-          and(
-            effectiveTenantId ? eq(products.tenantId, effectiveTenantId) : undefined,
-            or(
-              sql`COALESCE(${products.sku}, '') LIKE ${q}`,
-              sql`COALESCE(${products.description}, '') LIKE ${q}`,
-              sql`COALESCE(${products.internalCode}, '') LIKE ${q}`
-            )
+          or(
+            sql`COALESCE(${products.sku}, '') LIKE ${q}`,
+            sql`COALESCE(${products.description}, '') LIKE ${q}`,
+            sql`COALESCE(${products.internalCode}, '') LIKE ${q}`
           )
         )
         .orderBy(asc(products.sku))

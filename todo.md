@@ -55,8 +55,8 @@
 
 ## Manutenção
 
-- [ ] Procedure tRPC cleanupOrphanInventory no backend com critérios de órfão
-- [ ] UI de manutenção na tela de Inventário com botão de limpeza manual e relatório de resultado
+- [x] Procedure tRPC cleanupOrphanInventory no backend com critérios de órfão
+- [x] UI de manutenção na tela de Inventário com botão de limpeza manual e relatório de resultado
 - [x] Importação massiva de saldos via Excel (inventoryImportRouter): labelCode não-único, status por zona, uniqueCode=SKU-Lote, transação atômica, acesso restrito tenantId=1
 - [x] CORRIGIDO: collectorPickingRouter.listOrders — Admin Global agora vê ondas de todos os tenants sem filtro de tenant; removido status inexistente 'in_progress' do filtro (apenas 'pending' e 'picking' são válidos)
 
@@ -400,7 +400,7 @@
 
 ## Bug: /collector/stage — Etiqueta filtrada pelo tenantId do usuário
 
-- [ ] BUG: stage.ts busca labelAssociations pelo tenantId do usuário logado em vez do tenantId do pedido (stageCheck)
+- [x] BUG: stage.ts busca labelAssociations pelo tenantId do usuário logado em vez do tenantId do pedido (stageCheck)
 
 ## Bug: labelAssociations criadas com tenantId do usuário
 
@@ -448,7 +448,7 @@
 
 - [x] BUG CORRIGIDO: Global Admin (id=1) aparecia como tenant comum em todos os Selects do sistema. Corrigido na procedure tenants.list adicionando .where(ne(tenants.id, 1)) — filtro aplicado globalmente em todos os 10+ componentes que usam a lista.
 
-- [ ] BUG: "Não foi possível ler o arquivo XML" — FileReader retorna conteúdo vazio ao tentar importar NF-e
+- [x] BUG: "Não foi possível ler o arquivo XML" — FileReader retorna conteúdo vazio ao tentar importar NF-e
 
 - [x] BUG UI CORRIGIDO: Campo "Cód. Interno" (internalCode) agora aparece como campo separado no formulário de cadastro e edição de produto. SKU voltou a ser "SKU (Cód. Fornecedor)". Backend (products.create e products.update) aceita internalCode.
 
@@ -583,18 +583,18 @@
 - [x] Mensagem de erro clara: "Pedido X já está vinculado à FARMÁCIA Y. Não é possível registrar em FARMÁCIA Z."
 
 ## Dashboard de Performance Intra-Hospitalar (Analytics)
-- [ ] View SQL v_delivery_analytics com colunas de tempo de ciclo
-- [ ] Índices otimizados em delivery_logs (orderId, status, tenantId)
-- [ ] Router intraHospitalarAnalytics: getLeadTimeStats
-- [ ] Router intraHospitalarAnalytics: getWipStatus
-- [ ] Router intraHospitalarAnalytics: getAlerts (SLA)
-- [ ] Página IntraHospitalarDashboard.tsx com cards KPI
-- [ ] Gráfico de barras: tempo médio por farmácia
-- [ ] Gráfico de área: volume de chegadas na doca por hora
-- [ ] Rota /intra-hospitalar/dashboard registrada no App.tsx
-- [ ] Atualização automática via refetchInterval (React Query)
-- [ ] Filtro por tenantId em todas as queries
-- [ ] Suporte a Global Admin (visualizar qualquer tenant)
+- [x] View SQL v_delivery_analytics com colunas de tempo de ciclo
+- [x] Índices otimizados em delivery_logs (orderId, status, tenantId)
+- [x] Router intraHospitalarAnalytics: getLeadTimeStats
+- [x] Router intraHospitalarAnalytics: getWipStatus
+- [x] Router intraHospitalarAnalytics: getAlerts (SLA)
+- [x] Página IntraHospitalarDashboard.tsx com cards KPI
+- [x] Gráfico de barras: tempo médio por farmácia
+- [x] Gráfico de área: volume de chegadas na doca por hora
+- [x] Rota /intra-hospitalar/dashboard registrada no App.tsx
+- [x] Atualização automática via refetchInterval (React Query)
+- [x] Filtro por tenantId em todas as queries
+- [x] Suporte a Global Admin (visualizar qualquer tenant)
 
 ## Template de Importação de Saldos — Melhorias
 - [x] Aba oculta "Clientes" no template XLSX com lista de clientes cadastrados (via procedure getTenantsForTemplate)
@@ -721,7 +721,7 @@
 - [ ] Testes: 144/144 passando
 - [x] BUG: Menu Performance Intra-Hosp. aparece para todos os clientes (corrigido: menu dinâmico com intraHospitalEnabled)
 - [x] BUG: Rota do menu apontava para /intra-hospitalar/dashboard (corrigido: aponta para /portal/intra-hospitalar)
-- [ ] BUG: Acesso direto a /portal/intra-hospitalar não valida intraHospitalEnabled
+- [x] BUG: Acesso direto a /portal/intra-hospitalar não valida intraHospitalEnabled
 - [x] Exportação PDF+XLSX: Módulo Estoque (/portal/estoque)
 - [x] Exportação PDF+XLSX: Módulo Pedidos (/portal/pedidos)
 - [x] Exportação PDF+XLSX: Módulo Recebimentos (/portal/recebimentos)
