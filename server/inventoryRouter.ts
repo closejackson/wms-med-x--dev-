@@ -1263,11 +1263,16 @@ export const inventoryRouter = router({
       if (!canExecuteCount(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão" });
       }
-      const db = await getDb();
+            const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
-
+      // Resolver tenantId a partir do inventário (não do usuário, para suportar Global Admin)
+      const [invRow] = await db
+        .select({ tenantId: inventories.tenantId })
+        .from(inventories)
+        .where(eq(inventories.id, input.inventoryId))
+        .limit(1);
+      const resolvedTenantId = invRow?.tenantId ?? null;
       const results: { orderNumber?: string; falLocation?: string; productSku?: string }[] = [];
-
       return await db.transaction(async (tx: any) => {
         for (const item of input.items) {
           const variance = item.countedQuantity - item.expectedQuantity;
@@ -1284,7 +1289,7 @@ export const inventoryRouter = router({
             productDescription: item.productDescription ?? null,
             batch: item.batch ?? null,
             expiryDate: item.expiryDate ?? null,
-            tenantId: item.tenantId ?? null,
+            tenantId: resolvedTenantId,
             expectedQuantity: item.expectedQuantity,
             countedQuantity: item.countedQuantity,
             variance,
@@ -1297,7 +1302,7 @@ export const inventoryRouter = router({
             // Criar OM de sobra
             const orderNumber = await generateOrderNumber(tx);
             const [omInserted] = await tx.insert(pickingOrders).values({
-              tenantId: item.tenantId ?? 1,
+              tenantId: resolvedTenantId ?? 1,
               orderNumber,
               orderType: "inventory_surplus",
               inventoryId: input.inventoryId,
@@ -1329,8 +1334,8 @@ export const inventoryRouter = router({
               .from(warehouseLocations)
               .where(and(
                 eq(warehouseLocations.zoneCode, "FAL"),
-                eq(warehouseLocations.status, "available"),
-                item.tenantId ? eq(warehouseLocations.tenantId, item.tenantId) : isNull(warehouseLocations.tenantId),
+                // Não filtrar por status: endereços FAL podem ter status quarantine
+                resolvedTenantId ? eq(warehouseLocations.tenantId, resolvedTenantId) : isNull(warehouseLocations.tenantId),
               ))
               .limit(1);
             if (!falLoc) throw new TRPCError({ code: "NOT_FOUND", message: "Nenhum endereço FAL disponível" });
@@ -1362,7 +1367,7 @@ export const inventoryRouter = router({
               );
             } else {
               await tx.insert(inventory).values({
-                tenantId: item.tenantId ?? null,
+                tenantId: resolvedTenantId,
                 productId: item.productId,
                 locationId: falLoc.id,
                 batch: item.batch ?? null,
@@ -1375,7 +1380,7 @@ export const inventoryRouter = router({
             }
             // Registrar movimento
             await tx.insert(inventoryMovements).values({
-              tenantId: item.tenantId ?? null,
+              tenantId: resolvedTenantId,
               productId: item.productId,
               batch: item.batch ?? null,
               expiryDate: item.expiryDate ?? null,
