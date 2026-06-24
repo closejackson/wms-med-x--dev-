@@ -208,6 +208,7 @@ export async function createWave(params: CreateWaveParams) {
       id: pickingOrders.id,
       tenantId: pickingOrders.tenantId,
       status: pickingOrders.status,
+      orderType: pickingOrders.orderType,
     })
     .from(pickingOrders)
     .where(inArray(pickingOrders.id, params.orderIds));
@@ -261,7 +262,7 @@ export async function createWave(params: CreateWaveParams) {
 
   if (productsWithoutUPB.length > 0) {
     // Tentar resolver unitsPerBox via labelAssociations para produtos sem cadastro
-    const missingIds = [...new Set(productsWithoutUPB.map((p) => p.productId).filter(Boolean) as number[])];
+    const missingIds = Array.from(new Set(productsWithoutUPB.map((p) => p.productId).filter(Boolean) as number[]));
     const labelUPBRows = await db
       .select({ productId: labelAssociations.productId, unitsPerBox: labelAssociations.unitsPerBox })
       .from(labelAssociations)
@@ -278,7 +279,7 @@ export async function createWave(params: CreateWaveParams) {
       }
     }
     // Atualizar products.unitsPerBox para os que foram encontrados na labelAssociation
-    for (const [productId, upb] of labelUPBMap.entries()) {
+    for (const [productId, upb] of Array.from(labelUPBMap.entries())) {
       await db.update(products).set({ unitsPerBox: upb }).where(eq(products.id, productId));
     }
     // Verificar se ainda há produtos sem UPB após o fallback
@@ -295,6 +296,63 @@ export async function createWave(params: CreateWaveParams) {
       throw new Error(
         `Não é possível iniciar o picking: os seguintes produtos não possuem "Unidades por Caixa" cadastrado: ${productList}. Acesse o cadastro de produtos e preencha este campo antes de continuar.`
       );
+    }
+  }
+
+  // 2.8. Para pedidos de sobra de inventário, criar pickingAllocations automaticamente
+  // pois esses pedidos não passam pelo fluxo normal de alocação
+  const surplusOrders = orders.filter((o) => o.orderType === "inventory_surplus");
+  if (surplusOrders.length > 0) {
+    const surplusOrderIds = surplusOrders.map((o) => o.id);
+    // Verificar se já existem alocações para esses pedidos
+    const existingAllocs = await db
+      .select({ pickingOrderId: pickingAllocations.pickingOrderId })
+      .from(pickingAllocations)
+      .where(inArray(pickingAllocations.pickingOrderId, surplusOrderIds));
+    const ordersWithAllocs = new Set(existingAllocs.map((a) => a.pickingOrderId));
+    const ordersNeedingAllocs = surplusOrderIds.filter((id) => !ordersWithAllocs.has(id));
+    if (ordersNeedingAllocs.length > 0) {
+      // Buscar items dos pedidos de sobra sem alocação
+      const surplusItems = await db
+        .select({
+          pickingOrderId: pickingOrderItems.pickingOrderId,
+          productId: pickingOrderItems.productId,
+          productSku: products.sku,
+          requestedQuantity: pickingOrderItems.requestedQuantity,
+          fromLocationId: pickingOrderItems.fromLocationId,
+          locationCode: warehouseLocations.code,
+          batch: pickingOrderItems.batch,
+          expiryDate: pickingOrderItems.expiryDate,
+          uniqueCode: sql<string | null>`NULL`.as('uniqueCode'),
+        })
+        .from(pickingOrderItems)
+        .leftJoin(products, eq(pickingOrderItems.productId, products.id))
+        .leftJoin(warehouseLocations, eq(pickingOrderItems.fromLocationId, warehouseLocations.id))
+        .where(inArray(pickingOrderItems.pickingOrderId, ordersNeedingAllocs));
+      if (surplusItems.length > 0) {
+        const allocsToInsert = surplusItems
+          .filter((item) => item.fromLocationId && item.locationCode && item.productSku)
+          .map((item, idx) => ({
+            pickingOrderId: item.pickingOrderId,
+            productId: item.productId,
+            productSku: item.productSku!,
+            locationId: item.fromLocationId!,
+            locationCode: item.locationCode!,
+            batch: item.batch ?? null,
+            expiryDate: item.expiryDate ?? null,
+            uniqueCode: item.uniqueCode ?? null,
+            labelCode: null,
+            quantity: item.requestedQuantity,
+            isFractional: false,
+            sequence: idx + 1,
+            status: "pending" as const,
+            pickedQuantity: 0,
+          }));
+        if (allocsToInsert.length > 0) {
+          await db.insert(pickingAllocations).values(allocsToInsert);
+          console.log(`[createWave] Criadas ${allocsToInsert.length} alocações para pedidos de sobra de inventário`);
+        }
+      }
     }
   }
 
