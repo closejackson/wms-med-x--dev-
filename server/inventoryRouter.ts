@@ -1529,6 +1529,7 @@ export const inventoryRouter = router({
     .input(z.object({
       labelCode: z.string().min(1),
       productId: z.number(),
+      inventoryId: z.number().optional(), // usado para resolver tenantId quando Global Admin
       batch: z.string().optional(),
       expiryDate: z.string().optional(), // YYYY-MM-DD
       unitsPerBox: z.number().min(1).default(1),
@@ -1595,10 +1596,21 @@ export const inventoryRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Produto não encontrado" });
       }
 
-      const isGlobalAdmin = ctx.user.role === "admin" && ctx.user.tenantId === 1;
-      const effectiveTenantId = isGlobalAdmin ? (input.tenantId ?? null) : ctx.user.tenantId;
+            const isGlobalAdmin = ctx.user.role === "admin" && ctx.user.tenantId === 1;
+      let effectiveTenantId: number | null = isGlobalAdmin ? (input.tenantId ?? null) : ctx.user.tenantId;
+      // Se Global Admin sem tenantId explícito, buscar o tenant do inventário
+      if (isGlobalAdmin && !effectiveTenantId && input.inventoryId) {
+        const [inv] = await db
+          .select({ tenantId: inventories.tenantId })
+          .from(inventories)
+          .where(eq(inventories.id, input.inventoryId))
+          .limit(1);
+        effectiveTenantId = inv?.tenantId ?? null;
+      }
+      if (!effectiveTenantId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Não foi possível determinar o cliente para esta etiqueta. Informe o inventário ou o cliente." });
+      }
       const uniqueCode = getUniqueCode(product.sku ?? String(product.id), input.batch ?? null);
-
       const insertResult = await db.insert(labelAssociations).values({
         tenantId: effectiveTenantId,
         labelCode: input.labelCode,

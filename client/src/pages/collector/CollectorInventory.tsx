@@ -1040,6 +1040,7 @@ export function CollectorInventory() {
                   const result = await associateLabelMutation.mutateAsync({
                     labelCode: pendingLabelCode,
                     productId: labelInferredProduct.id,
+                    inventoryId: selectedInventoryId ?? undefined,
                     batch: labelBatch || undefined,
                     expiryDate: labelExpiryDate || undefined,
                     unitsPerBox: labelUnitsPerBox,
