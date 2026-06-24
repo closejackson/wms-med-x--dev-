@@ -303,7 +303,43 @@ export function CollectorInventory() {
 
       if (!result.found) {
         if (result.wrongLocation) {
-          setVolumeError(`⚠️ Produto ${result.product?.productSku ?? ""} pertence a outro endereço`);
+          const isEmptyLocation = countedItems.every((r) => r.expectedQuantity === 0);
+          if (isEmptyLocation && result.product) {
+            // Endereço vazio no sistema + produto físico presente = SOBRA
+            const p = result.product as { productId: number; productSku: string | null; productDescription: string | null; batch: string | null; expiryDate: string | null; expectedQuantity: number; labelCode: string | null; uniqueCode: string | null };
+            const qty = result.unitsPerBox ?? 1;
+            setCountedItems((prev) => {
+              const idx = prev.findIndex(
+                (r) => r.productId === p.productId && r.batch === p.batch
+              );
+              if (idx >= 0) {
+                return prev.map((r, i) =>
+                  i === idx ? { ...r, countedQuantity: r.countedQuantity + qty } : r
+                );
+              }
+              return [
+                ...prev,
+                {
+                  productId: p.productId,
+                  productSku: p.productSku ?? null,
+                  productDescription: p.productDescription ?? null,
+                  batch: p.batch ?? null,
+                  expiryDate: p.expiryDate ?? null,
+                  expectedQuantity: 0,
+                  countedQuantity: qty,
+                  labelCode: p.labelCode ?? null,
+                },
+              ];
+            });
+            if (qty > 1) {
+              toast.success(`+${qty} un. (sobra) — ${p.productSku ?? p.productDescription ?? "Produto"}`, { duration: 1500 });
+            } else {
+              toast.success(`Sobra registrada — ${p.productSku ?? p.productDescription ?? "Produto"}`, { duration: 1500 });
+            }
+          } else {
+            // Endereço com saldo esperado: produto pertence a outro endereço, apenas alertar
+            setVolumeError(`⚠️ Produto ${result.product?.productSku ?? ""} pertence a outro endereço`);
+          }
           setTimeout(() => volumeRef.current?.focus(), 50);
         } else {
           // Etiqueta sem labelAssociation — inferir produto do saldo esperado

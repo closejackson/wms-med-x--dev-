@@ -1080,13 +1080,42 @@ export const inventoryRouter = router({
       if (!stockRow) {
         // Tenta buscar em qualquer endereço (produto existe mas não neste endereço)
         const [anyRow] = await db
-          .select({ id: inventory.id, productSku: products.sku, productDescription: products.description })
+          .select({
+            id: inventory.id,
+            productId: inventory.productId,
+            productSku: products.sku,
+            productDescription: products.description,
+            batch: inventory.batch,
+            expiryDate: inventory.expiryDate,
+            labelCode: inventory.labelCode,
+            uniqueCode: inventory.uniqueCode,
+          })
           .from(inventory)
           .leftJoin(products, eq(inventory.productId, products.id))
           .where(eq(inventory.labelCode, input.labelCode))
           .limit(1);
         if (anyRow) {
-          return { found: false, wrongLocation: true, product: anyRow, unitsPerBox: 1 };
+          // Buscar unitsPerBox da labelAssociation
+          const [assoc] = await db
+            .select({ unitsPerBox: labelAssociations.unitsPerBox })
+            .from(labelAssociations)
+            .where(eq(labelAssociations.labelCode, input.labelCode))
+            .limit(1);
+          return {
+            found: false,
+            wrongLocation: true,
+            product: {
+              productId: anyRow.productId,
+              productSku: anyRow.productSku ?? null,
+              productDescription: anyRow.productDescription ?? null,
+              batch: anyRow.batch ?? null,
+              expiryDate: anyRow.expiryDate ?? null,
+              expectedQuantity: 0,
+              labelCode: anyRow.labelCode ?? null,
+              uniqueCode: anyRow.uniqueCode ?? null,
+            },
+            unitsPerBox: assoc?.unitsPerBox ?? 1,
+          };
         }
         return { found: false, wrongLocation: false, product: null, unitsPerBox: 1 };
       }
