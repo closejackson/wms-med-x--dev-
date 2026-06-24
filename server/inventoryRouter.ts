@@ -1574,7 +1574,8 @@ export const inventoryRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Produto não encontrado" });
       }
 
-      const effectiveTenantId = (input.tenantId ?? ctx.user.tenantId) as number;
+      const isGlobalAdmin = ctx.user.role === "admin" && ctx.user.tenantId === 1;
+      const effectiveTenantId = isGlobalAdmin ? (input.tenantId ?? null) : ctx.user.tenantId;
       const uniqueCode = getUniqueCode(product.sku ?? String(product.id), input.batch ?? null);
 
       const insertResult = await db.insert(labelAssociations).values({
@@ -1612,7 +1613,8 @@ export const inventoryRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponível" });
 
-      const effectiveTenantId = (input.tenantId ?? ctx.user.tenantId) as number;
+      const isGlobalAdmin = ctx.user.role === "admin" && ctx.user.tenantId === 1;
+      const effectiveTenantId = isGlobalAdmin ? (input.tenantId ?? null) : ctx.user.tenantId;
       const q = `%${input.query}%`;
 
       return db
