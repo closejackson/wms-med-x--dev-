@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and, asc, desc, sql, inArray, notExists } from "drizzle-orm";
+import { eq, and, asc, desc, sql, inArray, notExists, isNull } from "drizzle-orm";
 import { protectedProcedure, router } from "./_core/trpc";
 import { tenantProcedure, assertSameTenant } from "./_core/tenantGuard";
 import { getDb } from "./db";
@@ -1361,6 +1361,119 @@ export const collectorPickingRouter = router({
         );
       }
 
+      // ── Movimentação para SOB (pedidos de sobra de inventário) ───────────────
+      // Quando a onda contém pedidos do tipo inventory_surplus, mover os itens
+      // separados do endereço de armazenagem para o endereço SOB.
+      try {
+        const surplusOrders = await db
+          .select({ id: pickingOrders.id, tenantId: pickingOrders.tenantId })
+          .from(pickingOrders)
+          .where(and(
+            eq(pickingOrders.waveId, input.pickingOrderId),
+            eq(pickingOrders.orderType, "inventory_surplus"),
+          ));
+
+        if (surplusOrders.length > 0) {
+          const resolvedTenantId = surplusOrders[0].tenantId;
+
+          // Buscar endereço SOB do tenant
+          const [sobLoc] = await db
+            .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+            .from(warehouseLocations)
+            .where(and(
+              eq(warehouseLocations.zoneCode, "SOB"),
+              resolvedTenantId ? eq(warehouseLocations.tenantId, resolvedTenantId) : isNull(warehouseLocations.tenantId),
+            ))
+            .limit(1);
+
+          if (sobLoc) {
+            // Buscar itens separados da onda
+            const pickedItems = await db
+              .select({
+                productId: pickingWaveItems.productId,
+                productSku: pickingWaveItems.productSku,
+                batch: pickingWaveItems.batch,
+                expiryDate: pickingWaveItems.expiryDate,
+                locationId: pickingWaveItems.locationId,
+                pickedQuantity: pickingWaveItems.pickedQuantity,
+              })
+              .from(pickingWaveItems)
+              .where(and(
+                eq(pickingWaveItems.waveId, input.pickingOrderId),
+                eq(pickingWaveItems.status, "picked"),
+              ));
+
+            for (const item of pickedItems) {
+              if (!item.locationId || !item.pickedQuantity || item.pickedQuantity <= 0) continue;
+              const qty = item.pickedQuantity;
+
+              // Reduzir estoque no endereço de origem (armazenagem)
+              await db.execute(
+                sql`UPDATE inventory SET quantity = GREATEST(0, quantity - ${qty})
+                    WHERE locationId = ${item.locationId}
+                    AND productId = ${item.productId}
+                    AND (batch = ${item.batch ?? null} OR (batch IS NULL AND ${item.batch ?? null} IS NULL))
+                    AND tenantId = ${resolvedTenantId}
+                    LIMIT 1`
+              );
+
+              // Adicionar/atualizar no endereço SOB
+              const [existingSob] = await db
+                .select({ id: inventory.id, quantity: inventory.quantity })
+                .from(inventory)
+                .where(and(
+                  eq(inventory.locationId, sobLoc.id),
+                  eq(inventory.productId, item.productId),
+                  item.batch ? eq(inventory.batch, item.batch) : isNull(inventory.batch),
+                  eq(inventory.tenantId, resolvedTenantId),
+                ))
+                .limit(1);
+
+              if (existingSob) {
+                await db.execute(
+                  sql`UPDATE inventory SET quantity = quantity + ${qty} WHERE id = ${existingSob.id}`
+                );
+              } else {
+                await db.insert(inventory).values({
+                  tenantId: resolvedTenantId,
+                  productId: item.productId,
+                  locationId: sobLoc.id,
+                  batch: item.batch ?? null,
+                  expiryDate: item.expiryDate ?? null,
+                  locationZone: "SOB",
+                  quantity: qty,
+                  reservedQuantity: 0,
+                  status: "quarantine",
+                });
+              }
+
+              // Registrar movimento
+              await db.insert(inventoryMovements).values({
+                tenantId: resolvedTenantId,
+                productId: item.productId,
+                batch: item.batch ?? null,
+                expiryDate: item.expiryDate ?? null,
+                fromLocationId: item.locationId,
+                toLocationId: sobLoc.id,
+                quantity: qty,
+                movementType: "transfer",
+                referenceType: "picking",
+                referenceId: input.pickingOrderId,
+                performedBy: ctx.user.id,
+                notes: `Sobra inventário separada — movida para SOB (${sobLoc.code})`,
+              });
+            }
+
+            console.log(`[collectorPicking.complete] Movimentados itens de sobra para SOB (${sobLoc.code}) — onda ${input.pickingOrderId}`);
+          } else {
+            console.warn(`[collectorPicking.complete] Endereço SOB não encontrado para tenant ${resolvedTenantId} — itens não movimentados`);
+          }
+        }
+      } catch (sobErr) {
+        // Não bloquear a finalização do picking por erro na movimentação SOB
+        console.error(`[collectorPicking.complete] Erro ao mover itens para SOB:`, sobErr);
+      }
+
       return {
         ok: true,
         status: newStatus,
@@ -1970,6 +2083,108 @@ export const collectorPickingRouter = router({
       console.log(
         `[PICKING] Onda ${waveId} finalizada via completeOrderFull por Global Admin (userId=${ctx.user.id})`
       );
+
+      // ── Movimentação para SOB (pedidos de sobra de inventário) ───────────────
+      try {
+        const surplusOrdersFull = await db
+          .select({ id: pickingOrders.id, tenantId: pickingOrders.tenantId })
+          .from(pickingOrders)
+          .where(and(
+            eq(pickingOrders.waveId, waveId),
+            eq(pickingOrders.orderType, "inventory_surplus"),
+          ));
+
+        if (surplusOrdersFull.length > 0) {
+          const resolvedTenantId = surplusOrdersFull[0].tenantId;
+          const [sobLocFull] = await db
+            .select({ id: warehouseLocations.id, code: warehouseLocations.code })
+            .from(warehouseLocations)
+            .where(and(
+              eq(warehouseLocations.zoneCode, "SOB"),
+              resolvedTenantId ? eq(warehouseLocations.tenantId, resolvedTenantId) : isNull(warehouseLocations.tenantId),
+            ))
+            .limit(1);
+
+          if (sobLocFull) {
+            const pickedItemsFull = await db
+              .select({
+                productId: pickingWaveItems.productId,
+                batch: pickingWaveItems.batch,
+                expiryDate: pickingWaveItems.expiryDate,
+                locationId: pickingWaveItems.locationId,
+                pickedQuantity: pickingWaveItems.pickedQuantity,
+              })
+              .from(pickingWaveItems)
+              .where(and(
+                eq(pickingWaveItems.waveId, waveId),
+                eq(pickingWaveItems.status, "picked"),
+              ));
+
+            for (const item of pickedItemsFull) {
+              if (!item.locationId || !item.pickedQuantity || item.pickedQuantity <= 0) continue;
+              const qty = item.pickedQuantity;
+
+              await db.execute(
+                sql`UPDATE inventory SET quantity = GREATEST(0, quantity - ${qty})
+                    WHERE locationId = ${item.locationId}
+                    AND productId = ${item.productId}
+                    AND (batch = ${item.batch ?? null} OR (batch IS NULL AND ${item.batch ?? null} IS NULL))
+                    AND tenantId = ${resolvedTenantId}
+                    LIMIT 1`
+              );
+
+              const [existingSobFull] = await db
+                .select({ id: inventory.id })
+                .from(inventory)
+                .where(and(
+                  eq(inventory.locationId, sobLocFull.id),
+                  eq(inventory.productId, item.productId),
+                  item.batch ? eq(inventory.batch, item.batch) : isNull(inventory.batch),
+                  eq(inventory.tenantId, resolvedTenantId),
+                ))
+                .limit(1);
+
+              if (existingSobFull) {
+                await db.execute(
+                  sql`UPDATE inventory SET quantity = quantity + ${qty} WHERE id = ${existingSobFull.id}`
+                );
+              } else {
+                await db.insert(inventory).values({
+                  tenantId: resolvedTenantId,
+                  productId: item.productId,
+                  locationId: sobLocFull.id,
+                  batch: item.batch ?? null,
+                  expiryDate: item.expiryDate ?? null,
+                  locationZone: "SOB",
+                  quantity: qty,
+                  reservedQuantity: 0,
+                  status: "quarantine",
+                });
+              }
+
+              await db.insert(inventoryMovements).values({
+                tenantId: resolvedTenantId,
+                productId: item.productId,
+                batch: item.batch ?? null,
+                expiryDate: item.expiryDate ?? null,
+                fromLocationId: item.locationId,
+                toLocationId: sobLocFull.id,
+                quantity: qty,
+                movementType: "transfer",
+                referenceType: "picking",
+                referenceId: waveId,
+                performedBy: ctx.user.id,
+                notes: `Sobra inventário separada — movida para SOB (${sobLocFull.code}) via completeOrderFull`,
+              });
+            }
+            console.log(`[completeOrderFull] Movimentados itens de sobra para SOB (${sobLocFull.code}) — onda ${waveId}`);
+          } else {
+            console.warn(`[completeOrderFull] Endereço SOB não encontrado para tenant ${resolvedTenantId}`);
+          }
+        }
+      } catch (sobErr) {
+        console.error(`[completeOrderFull] Erro ao mover itens para SOB:`, sobErr);
+      }
 
       return {
         ok: true,
