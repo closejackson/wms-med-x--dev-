@@ -899,7 +899,7 @@ export const inventoryRouter = router({
       if (effectiveTenantId !== null && effectiveTenantId !== undefined) {
         conditions.push(eq(inventories.tenantId, effectiveTenantId));
       }
-      return db
+      const invRows = await db
         .select({
           id: inventories.id,
           inventoryNumber: inventories.inventoryNumber,
@@ -908,10 +908,33 @@ export const inventoryRouter = router({
           countedLocations: inventories.countedLocations,
           divergentLocations: inventories.divergentLocations,
           startedAt: inventories.startDate,
+          currentPhase: inventories.currentPhase,
         })
         .from(inventories)
         .where(and(...conditions))
         .orderBy(desc(inventories.startDate));
+      // Para inventários gerais, calcular contagem de endereços da fase atual
+      const result = await Promise.all(invRows.map(async (inv) => {
+        if (inv.type !== "general" || !inv.currentPhase) {
+          return { ...inv, phaseTotal: inv.totalLocations, phaseCounted: inv.countedLocations ?? 0 };
+        }
+        const [phaseStats] = await db
+          .select({
+            total: sql<number>`COUNT(*)`,
+            counted: sql<number>`SUM(CASE WHEN status != 'pending' THEN 1 ELSE 0 END)`,
+          })
+          .from(inventoryLocations)
+          .where(and(
+            eq(inventoryLocations.inventoryId, inv.id),
+            eq(inventoryLocations.inventoryPhase, inv.currentPhase),
+          ));
+        return {
+          ...inv,
+          phaseTotal: phaseStats?.total ?? inv.totalLocations,
+          phaseCounted: phaseStats?.counted ?? 0,
+        };
+      }));
+      return result;
     }),
 
   /** Busca um endereço de inventário pelo código escaneado (locationCode) */

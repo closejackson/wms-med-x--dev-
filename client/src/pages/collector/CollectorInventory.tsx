@@ -517,7 +517,12 @@ export function CollectorInventory() {
             )}
 
             {activeInventories?.map((inv) => {
-              const pct = Math.round(((inv.countedLocations ?? 0) / (inv.totalLocations || 1)) * 100);
+              const isGeneral = inv.type === "general";
+              const phaseTotal = (inv as any).phaseTotal ?? inv.totalLocations;
+              const phaseCounted = (inv as any).phaseCounted ?? (inv.countedLocations ?? 0);
+              const pct = Math.round((phaseCounted / (phaseTotal || 1)) * 100);
+              const currentPhase = (inv as any).currentPhase;
+              const phaseLabel = currentPhase === "phase1" ? "1ª Etapa" : currentPhase === "phase2" ? "2ª Etapa" : currentPhase === "phase3" ? "3ª Etapa" : null;
               return (
                 <Card
                   key={inv.id}
@@ -528,15 +533,23 @@ export function CollectorInventory() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-base">{inv.inventoryNumber}</p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {inv.type === "cyclic" ? "Cíclico" : "Geral"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {inv.type === "cyclic" ? "Cíclico" : "Geral"}
+                          </p>
+                          {isGeneral && phaseLabel && (
+                            <Badge variant="outline" className="text-xs border-teal-400 text-teal-700">{phaseLabel}</Badge>
+                          )}
+                        </div>
                       </div>
                       <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div className="mt-3">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>{inv.countedLocations ?? 0} / {inv.totalLocations} endereços</span>
+                        <span>
+                          {phaseCounted} / {phaseTotal} endereços
+                          {isGeneral && phaseLabel && <span className="ml-1 text-teal-600">({phaseLabel})</span>}
+                        </span>
                         <span>{pct}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
