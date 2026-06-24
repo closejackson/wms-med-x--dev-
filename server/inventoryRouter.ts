@@ -1242,7 +1242,95 @@ export const inventoryRouter = router({
         .limit(1);
 
       if (!stockRow) {
-        // Tenta buscar em qualquer endereço (produto existe mas não neste endereço)
+        // Tentar resolver via labelAssociations (etiqueta associada a produto/lote)
+        const [assocRow] = await db
+          .select({
+            productId: labelAssociations.productId,
+            productSku: products.sku,
+            productDescription: products.description,
+            batch: labelAssociations.batch,
+            expiryDate: labelAssociations.expiryDate,
+            labelCode: labelAssociations.labelCode,
+            uniqueCode: labelAssociations.uniqueCode,
+            unitsPerBox: labelAssociations.unitsPerBox,
+          })
+          .from(labelAssociations)
+          .leftJoin(products, eq(labelAssociations.productId, products.id))
+          .where(eq(labelAssociations.labelCode, input.labelCode))
+          .limit(1);
+
+        const sourceProductId = assocRow?.productId ?? null;
+        const sourceBatch = assocRow?.batch ?? null;
+
+        if (sourceProductId) {
+          // Verificar se o produto/lote da etiqueta bate com o saldo esperado deste endereço
+          const batchCondition = sourceBatch
+            ? eq(inventory.batch, sourceBatch)
+            : isNull(inventory.batch);
+          const [matchingRow] = await db
+            .select({
+              id: inventory.id,
+              productId: inventory.productId,
+              productSku: products.sku,
+              productDescription: products.description,
+              batch: inventory.batch,
+              expiryDate: inventory.expiryDate,
+              quantity: inventory.quantity,
+              labelCode: inventory.labelCode,
+              uniqueCode: inventory.uniqueCode,
+            })
+            .from(inventory)
+            .leftJoin(products, eq(inventory.productId, products.id))
+            .where(and(
+              eq(inventory.locationId, input.locationId),
+              eq(inventory.productId, sourceProductId),
+              eq(inventory.status, "available"),
+              batchCondition,
+            ))
+            .limit(1);
+
+          if (matchingRow) {
+            // Produto/lote bate — contar normalmente e vincular o labelCode
+            await db
+              .update(inventory)
+              .set({ labelCode: input.labelCode })
+              .where(eq(inventory.id, matchingRow.id));
+            return {
+              found: true,
+              wrongLocation: false,
+              unitsPerBox: assocRow?.unitsPerBox ?? 1,
+              product: {
+                productId: matchingRow.productId,
+                productSku: matchingRow.productSku ?? assocRow?.productSku ?? null,
+                productDescription: matchingRow.productDescription ?? assocRow?.productDescription ?? null,
+                batch: matchingRow.batch,
+                expiryDate: matchingRow.expiryDate,
+                expectedQuantity: matchingRow.quantity,
+                labelCode: input.labelCode,
+                uniqueCode: assocRow?.uniqueCode ?? matchingRow.uniqueCode,
+              },
+            };
+          }
+
+          // Produto/lote não bate — produto está no endereço errado
+          return {
+            found: false,
+            wrongLocation: true,
+            product: {
+              productId: assocRow!.productId,
+              productSku: assocRow!.productSku ?? null,
+              productDescription: assocRow!.productDescription ?? null,
+              batch: assocRow!.batch ?? null,
+              expiryDate: assocRow!.expiryDate ?? null,
+              expectedQuantity: 0,
+              labelCode: assocRow!.labelCode ?? null,
+              uniqueCode: assocRow!.uniqueCode ?? null,
+            },
+            unitsPerBox: assocRow!.unitsPerBox ?? 1,
+          };
+        }
+
+        // Fallback: buscar em qualquer linha do inventory pelo labelCode
         const [anyRow] = await db
           .select({
             id: inventory.id,
@@ -1259,8 +1347,56 @@ export const inventoryRouter = router({
           .where(eq(inventory.labelCode, input.labelCode))
           .limit(1);
         if (anyRow) {
-          // Buscar unitsPerBox da labelAssociation
-          const [assoc] = await db
+          // Verificar se o produto/lote bate com o saldo esperado deste endereço
+          const batchCond2 = anyRow.batch
+            ? eq(inventory.batch, anyRow.batch)
+            : isNull(inventory.batch);
+          const [matchingRow2] = await db
+            .select({
+              id: inventory.id,
+              productId: inventory.productId,
+              productSku: products.sku,
+              productDescription: products.description,
+              batch: inventory.batch,
+              expiryDate: inventory.expiryDate,
+              quantity: inventory.quantity,
+              labelCode: inventory.labelCode,
+              uniqueCode: inventory.uniqueCode,
+            })
+            .from(inventory)
+            .leftJoin(products, eq(inventory.productId, products.id))
+            .where(and(
+              eq(inventory.locationId, input.locationId),
+              eq(inventory.productId, anyRow.productId),
+              eq(inventory.status, "available"),
+              batchCond2,
+            ))
+            .limit(1)
+            .then(r => r[0] ?? null);
+
+          if (matchingRow2) {
+            await db
+              .update(inventory)
+              .set({ labelCode: input.labelCode })
+              .where(eq(inventory.id, matchingRow2.id));
+            return {
+              found: true,
+              wrongLocation: false,
+              unitsPerBox: 1,
+              product: {
+                productId: matchingRow2.productId,
+                productSku: matchingRow2.productSku,
+                productDescription: matchingRow2.productDescription,
+                batch: matchingRow2.batch,
+                expiryDate: matchingRow2.expiryDate,
+                expectedQuantity: matchingRow2.quantity,
+                labelCode: input.labelCode,
+                uniqueCode: anyRow.uniqueCode ?? matchingRow2.uniqueCode,
+              },
+            };
+          }
+
+          const [assoc2] = await db
             .select({ unitsPerBox: labelAssociations.unitsPerBox })
             .from(labelAssociations)
             .where(eq(labelAssociations.labelCode, input.labelCode))
@@ -1278,7 +1414,7 @@ export const inventoryRouter = router({
               labelCode: anyRow.labelCode ?? null,
               uniqueCode: anyRow.uniqueCode ?? null,
             },
-            unitsPerBox: assoc?.unitsPerBox ?? 1,
+            unitsPerBox: assoc2?.unitsPerBox ?? 1,
           };
         }
         return { found: false, wrongLocation: false, product: null, unitsPerBox: 1 };
