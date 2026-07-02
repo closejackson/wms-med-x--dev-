@@ -114,7 +114,10 @@ export function ClientPortalStock() {
               exportMutation.mutateAsync({
                 format,
                 search: search || undefined,
+                batch: batch || undefined,
                 status: status === "all" ? undefined : (status as any),
+                dateFrom: dateRange.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
+                dateTo: dateRange.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
               })
             }
           />

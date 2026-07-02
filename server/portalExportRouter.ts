@@ -176,7 +176,10 @@ export const portalExportRouter = router({
     .input(z.object({
       format: z.enum(["pdf", "xlsx"]),
       search: z.string().optional(),
+      batch: z.string().optional(),
       status: z.enum(["available", "quarantine", "blocked", "expired"]).optional(),
+      dateFrom: z.string().optional(), // ISO YYYY-MM-DD
+      dateTo: z.string().optional(),   // ISO YYYY-MM-DD
     }))
     .mutation(async ({ input, ctx }) => {
       const { tenantId } = await getPortalSession(ctx.req);
@@ -187,6 +190,9 @@ export const portalExportRouter = router({
       const conditions: any[] = [eq(inventory.tenantId, tenantId), gt(inventory.quantity, 0)];
       if (input.status) conditions.push(eq(inventory.status, input.status));
       if (input.search) conditions.push(or(like(products.sku, `%${input.search}%`), like(products.description, `%${input.search}%`))!);
+      if (input.batch) conditions.push(like(inventory.batch, `%${input.batch}%`));
+      if (input.dateFrom) conditions.push(gte(inventory.expiryDate, input.dateFrom));
+      if (input.dateTo) conditions.push(lte(inventory.expiryDate, input.dateTo));
 
       const rows = await db
         .select({
@@ -206,48 +212,149 @@ export const portalExportRouter = router({
         .innerJoin(warehouseLocations, eq(inventory.locationId, warehouseLocations.id))
         .innerJoin(warehouseZones, eq(warehouseLocations.zoneId, warehouseZones.id))
         .where(and(...conditions))
-        .orderBy(products.description)
-        .limit(5000);
+        .orderBy(products.description, inventory.expiryDate)
+        .limit(10000);
 
       const statusLabel: Record<string, string> = {
         available: "Disponível", quarantine: "Quarentena", blocked: "Bloqueado", expired: "Vencido",
       };
 
+      // Data de geração formatada para o nome do arquivo
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const safeClientName = tenantName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
+
       if (input.format === "xlsx") {
         const wb = new ExcelJS.Workbook();
         wb.creator = "Med@x WMS";
-        const ws = wb.addWorksheet("Estoque");
+        wb.created = now;
+
+        // Aba de dados
+        const ws = wb.addWorksheet("Posições de Estoque");
+
+        // Linha de título (linha 1)
+        ws.mergeCells("A1:K1");
+        const titleCell = ws.getCell("A1");
+        titleCell.value = `Relatório de Posições de Estoque — ${tenantName}`;
+        titleCell.font = { bold: true, size: 13, color: { argb: "FF1E40AF" } };
+        titleCell.alignment = { horizontal: "left", vertical: "middle" };
+        ws.getRow(1).height = 24;
+
+        // Linha de metadados (linha 2)
+        ws.mergeCells("A2:K2");
+        const metaCell = ws.getCell("A2");
+        const filterParts: string[] = [];
+        if (input.search) filterParts.push(`Busca: "${input.search}"`);
+        if (input.batch) filterParts.push(`Lote: "${input.batch}"`);
+        if (input.status) filterParts.push(`Status: ${statusLabel[input.status] ?? input.status}`);
+        if (input.dateFrom || input.dateTo) filterParts.push(`Validade: ${input.dateFrom ?? ''} a ${input.dateTo ?? ''}`);
+        metaCell.value = `Gerado em: ${now.toLocaleString('pt-BR')}  |  Total: ${rows.length} registros${filterParts.length ? '  |  Filtros: ' + filterParts.join(', ') : ''}`;
+        metaCell.font = { size: 9, color: { argb: "FF64748B" }, italic: true };
+        metaCell.alignment = { horizontal: "left", vertical: "middle" };
+        ws.getRow(2).height = 18;
+
+        // Linha em branco (linha 3)
+        ws.getRow(3).height = 6;
+
+        // Cabeçalho de colunas (linha 4)
         ws.columns = [
-          { header: "SKU", key: "sku", width: 18 },
-          { header: "Descrição", key: "description", width: 40 },
-          { header: "Lote", key: "batch", width: 18 },
-          { header: "Validade", key: "expiryDate", width: 14 },
-          { header: "Qtd. Total", key: "quantity", width: 12 },
-          { header: "Qtd. Reservada", key: "reserved", width: 16 },
-          { header: "Qtd. Disponível", key: "available", width: 16 },
-          { header: "Status", key: "status", width: 14 },
-          { header: "Endereço", key: "location", width: 16 },
-          { header: "Zona", key: "zone", width: 16 },
-          { header: "UN", key: "unit", width: 8 },
+          { key: "sku",         width: 18 },
+          { key: "description", width: 42 },
+          { key: "batch",       width: 18 },
+          { key: "expiryDate",  width: 14 },
+          { key: "quantity",    width: 13 },
+          { key: "reserved",    width: 16 },
+          { key: "available",   width: 16 },
+          { key: "status",      width: 14 },
+          { key: "location",    width: 16 },
+          { key: "zone",        width: 18 },
+          { key: "unit",        width: 8  },
         ];
-        styleHeader(ws, 1, ws.columns.length);
-        rows.forEach((r) => {
-          ws.addRow({
-            sku: r.sku,
-            description: r.description,
-            batch: r.batch ?? "",
-            expiryDate: r.expiryDate ? toMySQLDate(r.expiryDate as any) : "",
-            quantity: r.quantity,
-            reserved: r.reservedQuantity ?? 0,
-            available: r.quantity - (r.reservedQuantity ?? 0),
-            status: statusLabel[r.status ?? ""] ?? r.status,
-            location: r.locationCode,
-            zone: r.zoneName,
-            unit: r.unitOfMeasure ?? "",
-          });
+        const headerLabels = ["SKU", "Descrição", "Lote", "Validade", "Qtd. Total", "Qtd. Reservada", "Qtd. Disponível", "Status", "Endereço", "Zona", "UN"];
+        const headerRow = ws.getRow(4);
+        headerLabels.forEach((label, i) => {
+          const cell = headerRow.getCell(i + 1);
+          cell.value = label;
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E40AF" } };
+          cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+          cell.alignment = { vertical: "middle", horizontal: i >= 4 && i <= 6 ? "right" : "left" };
+          cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
         });
-        ws.autoFilter = { from: "A1", to: `K1` };
-        return { base64: await xlsxToBase64(wb), filename: `estoque-${tenantName}-${Date.now()}.xlsx` };
+        headerRow.height = 20;
+
+        // Freeze cabeçalho
+        ws.views = [{ state: "frozen", xSplit: 0, ySplit: 4, activeCell: "A5" }];
+
+        // Linhas de dados com zebra striping
+        rows.forEach((r, idx) => {
+          const rowNum = idx + 5;
+          const dataRow = ws.getRow(rowNum);
+          const isEven = idx % 2 === 0;
+          const bgColor = isEven ? "FFF8FAFC" : "FFFFFFFF";
+
+          const availableQty = r.quantity - (r.reservedQuantity ?? 0);
+          const expiryStr = r.expiryDate ? String(r.expiryDate).substring(0, 10).split('-').reverse().join('/') : "";
+
+          const values = [
+            r.sku,
+            r.description,
+            r.batch ?? "",
+            expiryStr,
+            r.quantity,
+            r.reservedQuantity ?? 0,
+            availableQty,
+            statusLabel[r.status ?? ""] ?? (r.status ?? ""),
+            r.locationCode,
+            r.zoneName,
+            r.unitOfMeasure ?? "",
+          ];
+
+          values.forEach((val, i) => {
+            const cell = dataRow.getCell(i + 1);
+            cell.value = val;
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
+            cell.font = { size: 9 };
+            cell.alignment = { vertical: "middle", horizontal: i >= 4 && i <= 6 ? "right" : "left" };
+            // Destacar validade próxima (< 90 dias)
+            if (i === 3 && r.expiryDate) {
+              const expDate = new Date(String(r.expiryDate).substring(0, 10));
+              const daysLeft = Math.floor((expDate.getTime() - Date.now()) / 86400000);
+              if (daysLeft >= 0 && daysLeft <= 90) {
+                cell.font = { size: 9, bold: true, color: { argb: "FFB45309" } };
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
+              }
+            }
+            // Destacar status quarentena/bloqueado
+            if (i === 7 && (r.status === "quarantine" || r.status === "blocked")) {
+              cell.font = { size: 9, bold: true, color: { argb: r.status === "blocked" ? "FFDC2626" : "FFB45309" } };
+            }
+          });
+          dataRow.height = 16;
+        });
+
+        // Linha de totais
+        const totalRow = ws.getRow(rows.length + 5);
+        const totalQty = rows.reduce((s, r) => s + r.quantity, 0);
+        const totalReserved = rows.reduce((s, r) => s + (r.reservedQuantity ?? 0), 0);
+        const totalAvailable = totalQty - totalReserved;
+        ws.mergeCells(`A${rows.length + 5}:D${rows.length + 5}`);
+        const totalLabelCell = totalRow.getCell(1);
+        totalLabelCell.value = `TOTAL (${rows.length} registros)`;
+        totalLabelCell.font = { bold: true, size: 9, color: { argb: "FF1E40AF" } };
+        totalLabelCell.alignment = { horizontal: "right" };
+        [totalQty, totalReserved, totalAvailable].forEach((val, i) => {
+          const cell = totalRow.getCell(5 + i);
+          cell.value = val;
+          cell.font = { bold: true, size: 9, color: { argb: "FF1E40AF" } };
+          cell.alignment = { horizontal: "right" };
+          cell.border = { top: { style: "thin", color: { argb: "FF1E40AF" } } };
+        });
+        totalRow.height = 18;
+
+        // AutoFilter nas colunas de dados
+        ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: 11 } };
+
+        return { base64: await xlsxToBase64(wb), filename: `estoque-${safeClientName}-${dateStr}.xlsx` };
       }
 
       // PDF
@@ -284,7 +391,7 @@ export const portalExportRouter = router({
           r.sku,
           r.description.length > 28 ? r.description.slice(0, 26) + "…" : r.description,
           r.batch ?? "—",
-          r.expiryDate ? toMySQLDate(r.expiryDate as any) ?? "—" : "—",
+          r.expiryDate ? String(r.expiryDate).substring(0, 10).split('-').reverse().join('/') : "—",
           String(r.quantity),
           String(r.reservedQuantity ?? 0),
           statusLabel[r.status ?? ""] ?? (r.status ?? "—"),
@@ -297,7 +404,7 @@ export const portalExportRouter = router({
       });
 
       buildPdfFooter(doc);
-      return { base64: await pdfToBase64(doc), filename: `estoque-${tenantName}-${Date.now()}.pdf` };
+      return { base64: await pdfToBase64(doc), filename: `estoque-${safeClientName}-${dateStr}.pdf` };
     }),
 
   // ══════════════════════════════════════════════════════════════════════════
